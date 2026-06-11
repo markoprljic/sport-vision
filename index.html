@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#E31C21" />
+<title>Sport Vision — Smart Shopping Assistant</title>
+<style>
+  :root {
+    --brand: #E31C21;
+    --brand-soft: rgba(227, 28, 33, 0.08);
+    --bg: #ffffff;
+    --text: #171717;
+    --muted: #666;
+    --card: #f5f5f5;
+    --border: #ececec;
+    --radius: 16px;
+    --shadow-card: 0 6px 18px rgba(0,0,0,0.06);
+    --shadow-float: 0 10px 30px rgba(227,28,33,0.35);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: #f0f0f3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    overscroll-behavior: none;
+  }
+  body { min-height: 100vh; display: flex; justify-content: center; }
+  .app {
+    width: 100%;
+    max-width: 390px;
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,0.08);
+  }
+  .screen {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  .screen.active { display: flex; }
+  .scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  button { font-family: inherit; }
+
+  /* ===== Landing ===== */
+  #screen-landing { align-items: center; }
+  .logo {
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo img { height: 56px; width: auto; display: block; }
+  .topbar .logo { margin: 0; }
+  .topbar .logo img { height: 32px; }
+  .tagline {
+    margin-top: 24px;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 32px;
+  }
+  .radar-wrap {
+    position: absolute;
+    left: 50%; top: 488px;
+    transform: translate(-50%, -50%);
+    width: 390px; height: 390px;
+    pointer-events: none;
+  }
+  .radar-wrap svg { width: 100%; height: 100%; display: block; }
+  .radar-tap {
+    position: absolute;
+    left: 50%; top: 488px;
+    transform: translate(-50%, -50%);
+    width: 184px; height: 184px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 3;
+  }
+  .halo {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .halo-1 { width: 360px; height: 360px; background: radial-gradient(circle, rgba(227,28,33,0) 60%, rgba(255,46,46,0.10) 80%, rgba(227,28,33,0) 100%); filter: blur(14px); }
+  .halo-2 { width: 280px; height: 280px; background: radial-gradient(circle, rgba(227,28,33,0) 60%, rgba(255,38,38,0.28) 80%, rgba(227,28,33,0) 100%); filter: blur(6px); }
+  .halo-3 { width: 228px; height: 228px; background: radial-gradient(circle, rgba(227,28,33,0) 70%, rgba(255,31,31,0.60) 86%, rgba(227,28,33,0) 100%); filter: blur(2px); }
+  .halos { position: absolute; inset: 0; }
+  .halo-1, .halo-2, .halo-3 { animation: pulse 2.4s ease-in-out infinite; }
+  .halo-2 { animation-delay: 0.2s; }
+  .halo-3 { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+    50%      { transform: translate(-50%, -50%) scale(1.06); opacity: 1; }
+  }
+  .inner-button {
+    position: absolute;
+    left: 50%; top: 488px;
+    transform: translate(-50%, -50%);
+    width: 184px; height: 184px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow:
+      0 16px 48px rgba(227,28,33,0.22),
+      0 0 36px rgba(227,28,33,0.5),
+      inset 0 -2px 6px rgba(235,235,240,0.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .inner-button svg { width: 56px; height: 56px; }
+  .press-label {
+    position: absolute;
+    left: 50%; top: 722px;
+    transform: translate(-50%, -50%);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    color: var(--text);
+    z-index: 4;
+  }
+
+  /* ===== Listening ===== */
+  #screen-listening {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .mic-pulse {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--brand);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 32px;
+    box-shadow: 0 0 0 0 rgba(227,28,33,0.5);
+    animation: micPulse 1.4s ease-out infinite;
+  }
+  .mic-pulse svg { width: 60px; height: 60px; }
+  @keyframes micPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(227,28,33,0.55); transform: scale(1); }
+    70%  { box-shadow: 0 0 0 40px rgba(227,28,33,0); transform: scale(1.04); }
+    100% { box-shadow: 0 0 0 0 rgba(227,28,33,0); transform: scale(1); }
+  }
+  .listening-label {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand);
+    margin-bottom: 12px;
+  }
+  .transcript {
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 60px;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .hint { margin-top: 24px; font-size: 13px; color: var(--muted); }
+
+  /* ===== Follow-up ===== */
+  #screen-followup {
+    padding: 24px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .followup-q {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 28px;
+    max-width: 320px;
+  }
+  .chips { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; }
+  .chip {
+    padding: 14px 24px;
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover, .chip:active { border-color: var(--brand); background: #fff; }
+  .voice-reply {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--brand); font-weight: 600; font-size: 14px;
+    background: none; border: none; cursor: pointer; padding: 12px;
+  }
+
+  /* ===== Top bar (results / detail / cart) ===== */
+  .topbar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 5;
+  }
+  .topbar .logo { margin: 0; font-size: 20px; }
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+  .icon-btn:hover { background: var(--card); }
+  .cart-badge {
+    position: absolute; top: 4px; right: 2px;
+    min-width: 18px; height: 18px; padding: 0 5px;
+    border-radius: 9px;
+    background: var(--brand);
+    color: #fff;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cart-badge.hidden { display: none; }
+
+  /* ===== Results ===== */
+  .results-header {
+    padding: 16px 16px 8px;
+    font-size: 14px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .results-header strong { color: var(--text); font-weight: 700; }
+  .bundle-banner {
+    margin: 8px 16px 0;
+    padding: 14px 16px;
+    background: var(--brand-soft);
+    border: 1px solid rgba(227,28,33,0.2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .bundle-banner .total {
+    font-size: 22px; font-weight: 800; color: var(--brand); margin-top: 4px;
+  }
+  .product-list {
+    padding: 12px 16px 100px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .product-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+  .product-image {
+    aspect-ratio: 16/11;
+    display: flex; align-items: flex-end;
+    padding: 16px;
+    color: rgba(255,255,255,0.95);
+    position: relative;
+  }
+  .product-image .brand-watermark {
+    position: absolute; top: 14px; right: 16px;
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 2px;
+    opacity: 0.85;
+    text-transform: uppercase;
+  }
+  .product-image .product-image-name {
+    font-size: 18px; font-weight: 700; line-height: 1.25;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+    max-width: 80%;
+  }
+  .product-image .rating {
+    position: absolute; bottom: 14px; right: 16px;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .product-body { padding: 14px 16px 16px; }
+  .product-name { font-size: 16px; font-weight: 700; line-height: 1.3; }
+  .product-brand { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .product-price { font-size: 18px; font-weight: 800; margin-top: 8px; color: var(--text); }
+  .product-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    flex: 1; padding: 12px; border-radius: 12px;
+    border: none; cursor: pointer; font-weight: 600; font-size: 14px;
+    transition: filter 0.15s, transform 0.05s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-block { width: 100%; padding: 16px; font-size: 15px; }
+
+  /* Floating mic */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 50%;
+    transform: translateX(calc(195px - 32px));
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--brand);
+    box-shadow: var(--shadow-float);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .fab svg { width: 28px; height: 28px; }
+  .fab:active { transform: translateX(calc(195px - 32px)) scale(0.95); }
+  @media (max-width: 420px) {
+    .fab { right: 16px; transform: none; }
+    .fab:active { transform: scale(0.95); }
+  }
+
+  /* ===== Product Detail ===== */
+  .detail-body { padding: 16px 16px 100px; }
+  .detail-image {
+    aspect-ratio: 1/1;
+    border-radius: var(--radius);
+    display: flex; align-items: flex-end;
+    padding: 20px;
+    color: #fff;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .detail-image .product-image-name { font-size: 24px; }
+  .detail-name { font-size: 22px; font-weight: 800; line-height: 1.25; }
+  .detail-brand { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .detail-price { font-size: 26px; font-weight: 800; margin-top: 10px; color: var(--brand); }
+  .detail-desc { font-size: 14px; line-height: 1.55; color: var(--text); margin-top: 14px; }
+  .section-title { font-size: 15px; font-weight: 700; margin: 20px 0 10px; }
+  .size-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .size-chip {
+    min-width: 48px;
+    padding: 10px 14px;
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  .size-chip.selected { border-color: var(--brand); background: #fff; color: var(--brand); }
+  .related-scroll {
+    display: flex; gap: 12px;
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px 8px;
+    scroll-snap-type: x mandatory;
+  }
+  .related-card {
+    flex: 0 0 160px;
+    scroll-snap-align: start;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .related-card .product-image { aspect-ratio: 1/1; padding: 10px; }
+  .related-card .product-image-name { font-size: 13px; }
+  .related-card .brand-watermark { font-size: 10px; top: 8px; right: 10px; }
+  .related-body { padding: 10px; }
+  .related-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .related-price { font-size: 13px; font-weight: 800; margin-top: 4px; color: var(--brand); }
+
+  /* ===== Cart ===== */
+  .cart-list { padding: 16px; flex: 1; overflow-y: auto; }
+  .cart-item {
+    display: flex; gap: 12px;
+    padding: 12px;
+    background: var(--card);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+  .cart-thumb {
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 11px;
+  }
+  .cart-info { flex: 1; min-width: 0; }
+  .cart-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .cart-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cart-price { font-size: 14px; font-weight: 800; margin-top: 4px; }
+  .cart-remove {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .cart-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    background: #fff;
+  }
+  .cart-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .cart-total .label { font-size: 14px; color: var(--muted); }
+  .cart-total .amount { font-size: 24px; font-weight: 800; color: var(--brand); }
+  .empty-state {
+    text-align: center; padding: 60px 24px; color: var(--muted);
+  }
+  .empty-state .big { font-size: 48px; margin-bottom: 12px; }
+
+  /* ===== Error overlay ===== */
+  #screen-error {
+    align-items: center; justify-content: center;
+    padding: 32px; text-align: center;
+  }
+  .error-icon { width: 80px; height: 80px; margin-bottom: 16px; opacity: 0.6; }
+  .error-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .error-msg { font-size: 14px; color: var(--muted); max-width: 300px; margin-bottom: 24px; line-height: 1.5; }
+
+  /* ===== Utility ===== */
+  .row { display: flex; align-items: center; gap: 8px; }
+  .hidden { display: none !important; }
+  .no-results {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--muted);
+  }
+  .no-results .big { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- =================== LANDING =================== -->
+  <section id="screen-landing" class="screen active">
+    <div class="logo"><img src="logo.png" alt="Sport Vision"></div>
+    <div class="tagline">Imamo sve što tebi treba.</div>
+
+    <div class="halos">
+      <div class="halo halo-1" style="top: 488px;"></div>
+      <div class="halo halo-2" style="top: 488px;"></div>
+      <div class="halo halo-3" style="top: 488px;"></div>
+    </div>
+
+    <div class="radar-wrap" id="radarWrap" aria-hidden="true"></div>
+
+    <div class="inner-button">
+      <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="22" y="10" width="16" height="28" rx="8" fill="#E31C21"/>
+        <path d="M15 30c0 8.3 6.7 15 15 15s15-6.7 15-15" stroke="#E31C21" stroke-width="4" stroke-linecap="round"/>
+        <path d="M30 45v8" stroke="#E31C21" stroke-width="4" stroke-linecap="round"/>
+        <path d="M22 53h16" stroke="#E31C21" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <button class="radar-tap" id="landingTap" aria-label="Pokreni glasovnu pretragu"></button>
+
+    <div class="press-label">Reci nam što tražiš.</div>
+  </section>
+
+  <!-- =================== LISTENING =================== -->
+  <section id="screen-listening" class="screen">
+    <div class="mic-pulse">
+      <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="22" y="10" width="16" height="28" rx="8" fill="#fff"/>
+        <path d="M15 30c0 8.3 6.7 15 15 15s15-6.7 15-15" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <path d="M30 45v8" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <path d="M22 53h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="listening-label" id="listeningLabel">Slušam...</div>
+    <div class="transcript" id="transcript"></div>
+    <div class="hint" id="listeningHint">Dodirnite bilo gdje za prekid</div>
+    <div id="listeningFallback" style="padding:0 24px;width:100%;margin-top:8px" onclick="event.stopPropagation()">
+      <div style="display:flex;gap:8px">
+        <input id="fallbackInput" type="text" placeholder="Upišite što tražite..." style="flex:1;padding:12px 16px;border:2px solid var(--brand);border-radius:12px;font-size:16px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')submitFallbackText()">
+        <button onclick="submitFallbackText()" style="padding:12px 16px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Traži</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== FOLLOW-UP =================== -->
+  <section id="screen-followup" class="screen">
+    <div class="followup-q" id="followupQuestion">Za koga je oprema?</div>
+    <div class="chips" id="followupChips"></div>
+    <button class="voice-reply" onclick="startListening('refine')">
+      <svg width="20" height="20" viewBox="0 0 60 60" fill="none">
+        <rect x="22" y="10" width="16" height="28" rx="8" fill="#E31C21"/>
+        <path d="M15 30c0 8.3 6.7 15 15 15s15-6.7 15-15" stroke="#E31C21" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      Ili odgovorite glasom
+    </button>
+  </section>
+
+  <!-- =================== RESULTS =================== -->
+  <section id="screen-results" class="screen">
+    <div class="topbar">
+      <div class="logo"><img src="logo.png" alt="Sport Vision"></div>
+      <button class="icon-btn" onclick="goCart()" aria-label="Košarica">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>
+        </svg>
+        <span class="cart-badge hidden" id="cartBadgeResults">0</span>
+      </button>
+    </div>
+    <div class="scroll" style="flex:1">
+      <div class="results-header" id="resultsHeader"></div>
+      <div class="bundle-banner hidden" id="bundleBanner"></div>
+      <div class="product-list" id="productList"></div>
+    </div>
+    <button class="fab" onclick="startListening('refine')" aria-label="Govori za sužavanje rezultata">
+      <svg viewBox="0 0 60 60" fill="none">
+        <rect x="22" y="10" width="16" height="28" rx="8" fill="#fff"/>
+        <path d="M15 30c0 8.3 6.7 15 15 15s15-6.7 15-15" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <path d="M30 45v8" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <path d="M22 53h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </section>
+
+  <!-- =================== DETAIL =================== -->
+  <section id="screen-detail" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" onclick="goBack()" aria-label="Natrag">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <button class="icon-btn" onclick="goCart()" aria-label="Košarica">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>
+        </svg>
+        <span class="cart-badge hidden" id="cartBadgeDetail">0</span>
+      </button>
+    </div>
+    <div class="scroll" style="flex:1">
+      <div class="detail-body" id="detailBody"></div>
+    </div>
+  </section>
+
+  <!-- =================== CART =================== -->
+  <section id="screen-cart" class="screen">
+    <div class="topbar">
+      <button class="icon-btn" onclick="goBack()" aria-label="Natrag">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <div class="logo"><img src="logo.png" alt="Sport Vision"></div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="cart-list" id="cartList"></div>
+    <div class="cart-footer" id="cartFooter"></div>
+  </section>
+
+  <!-- =================== ERROR =================== -->
+  <section id="screen-error" class="screen">
+    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="#E31C21" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+      <line x1="3" y1="3" x2="21" y2="21"/>
+    </svg>
+    <div class="error-title" id="errorTitle">Mikrofon nije dostupan</div>
+    <div class="error-msg" id="errorMsg">Provjerite dopuštenja za mikrofon u postavkama preglednika. Demo najbolje radi u Chromeu.</div>
+    <button class="btn btn-primary btn-block" style="max-width:240px" onclick="goLanding()">U redu</button>
+  </section>
+
+</div>
+
+<script>
+//<![CDATA[
+'use strict';
+
+// =================== RADAR TICK MARKS ===================
+(function buildRadar(){
+  const wrap = document.getElementById('radarWrap');
+  if (!wrap) return;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 390 390');
+  // Guide circles
+  const guides = [
+    { r: 148, op: 0.10, w: 1 },
+    { r: 168, op: 0.08, w: 0.8 },
+    { r: 185, op: 0.06, w: 0.6 },
+    { r: 200, op: 0.04, w: 0.5 }
+  ];
+  guides.forEach(g => {
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('cx', 195); c.setAttribute('cy', 195);
+    c.setAttribute('r', g.r);
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', '#E31C21');
+    c.setAttribute('stroke-opacity', g.op);
+    c.setAttribute('stroke-width', g.w);
+    svg.appendChild(c);
+  });
+  // Tick lines: 36 ticks at 10° each, length 24, inner radius 108
+  for (let i = 0; i < 36; i++) {
+    const angle = (i * 10 - 90) * Math.PI / 180;
+    const r1 = 108, r2 = 132;
+    const x1 = 195 + Math.cos(angle) * r1;
+    const y1 = 195 + Math.sin(angle) * r1;
+    const x2 = 195 + Math.cos(angle) * r2;
+    const y2 = 195 + Math.sin(angle) * r2;
+    const ln = document.createElementNS(svgNS, 'line');
+    ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
+    ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
+    ln.setAttribute('stroke', '#E31C21');
+    ln.setAttribute('stroke-opacity', '0.22');
+    ln.setAttribute('stroke-width', '2.5');
+    ln.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(ln);
+  }
+  wrap.appendChild(svg);
+})();
+
+// =================== PRODUCT CATALOGUE ===================
+const BRAND_GRADIENTS = {
+  'Nike':        'linear-gradient(135deg, #111 0%, #222 100%)',
+  'adidas':      'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
+  'Asics':       'linear-gradient(135deg, #0d1b4b 0%, #1a3a7a 100%)',
+  'New Balance': 'linear-gradient(135deg, #0a2342 0%, #1a3a5c 100%)',
+  'Hoka':        'linear-gradient(135deg, #c25700 0%, #e07000 100%)',
+  'Wilson':      'linear-gradient(135deg, #1a3a1a 0%, #2d5a2d 100%)',
+  'Puma':        'linear-gradient(135deg, #1a1a1a 0%, #4a2d1a 100%)',
+  'Reebok':      'linear-gradient(135deg, #1a1a3a 0%, #2d2d5a 100%)'
+};
+
+const PRODUCTS = [
+  // Running shoes (scenario 2)
+  { id:'r1', name:'Air Zoom Pegasus 41', brand:'Nike', category:'tenisice', sport:['trčanje','maraton','trening'], gender:['muški','ženski'],
+    price:129.99, rating:4.8, colors:['crna','bijela','plava'], sizes:[40,41,42,43,44,45],
+    description:'Univerzalne tenisice za trčanje s odgovornim Air Zoom jastukom. Idealne za dnevne treninge i duže staze.',
+    tags:['trčanje','daily'] },
+  { id:'r2', name:'Adizero Boston 12', brand:'adidas', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
+    price:149.99, rating:4.7, colors:['crna','crvena','bijela'], sizes:[40,41,42,43,44,45],
+    description:'Brze tenisice za tempo treninge i utrke. LightStrike Pro međupodplat za maksimalan odraz energije.',
+    tags:['trčanje','tempo','maraton'] },
+  { id:'r3', name:'Gel-Nimbus 26', brand:'Asics', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
+    price:189.99, rating:4.9, colors:['plava','siva','crna'], sizes:[40,41,42,43,44,45,46],
+    description:'Maksimalan komfor i amortizacija za duge dionice. PureGEL tehnologija omogućuje meka prizemljenja korak za korakom.',
+    tags:['trčanje','komfor','dugo'] },
+  { id:'r4', name:'Fresh Foam X 1080v13', brand:'New Balance', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
+    price:179.99, rating:4.7, colors:['crna','bijela','siva'], sizes:[40,41,42,43,44,45],
+    description:'Premium dnevne tenisice za sve dionice. Fresh Foam X međupodplat za uravnotežen i mekan osjećaj.',
+    tags:['trčanje','komfor'] },
+  { id:'r5', name:'Vaporfly 3', brand:'Nike', category:'tenisice', sport:['trčanje','maraton','utrka'], gender:['muški','ženski'],
+    price:249.99, rating:4.9, colors:['crvena','bijela'], sizes:[40,41,42,43,44,45],
+    description:'Vrhunske trkače tenisice za maratonske rekorde. ZoomX pjena i karbonska ploča za eksplozivan odraz.',
+    tags:['trčanje','utrka','maraton','elite'] },
+  { id:'r6', name:'Clifton 9', brand:'Hoka', category:'tenisice', sport:['trčanje','outdoor'], gender:['muški','ženski'],
+    price:159.99, rating:4.6, colors:['crna','plava','siva'], sizes:[40,41,42,43,44,45],
+    description:'Lagani komfor i ravnomjeran osjećaj u svakom koraku. Omiljen model za rekreativne trkače.',
+    tags:['trčanje','komfor','laganost'] },
+  { id:'r7', name:'Ultraboost Light', brand:'adidas', category:'tenisice', sport:['trčanje','trening'], gender:['muški','ženski'],
+    price:169.99, rating:4.6, colors:['crna','bijela','siva'], sizes:[40,41,42,43,44,45],
+    description:'Boost povrat energije u njegovoj najlakšoj verziji. Primeknit gornjište pruža kompresivnu udobnost.',
+    tags:['trčanje','daily','lifestyle'] },
+  { id:'r8', name:'GT-2000 12', brand:'Asics', category:'tenisice', sport:['trčanje'], gender:['muški','ženski'],
+    price:119.99, rating:4.5, colors:['plava','crna','siva'], sizes:[40,41,42,43,44,45],
+    description:'Stabilne tenisice za podršku stopalu kod pronacije. Pouzdan svakodnevni izbor.',
+    tags:['trčanje','stabilnost','daily'] },
+
+  // Men's running trousers (scenario 1)
+  { id:'p1', name:'Phenom Elite Knit Pants', brand:'Nike', category:'hlače', sport:['trčanje'], gender:['muški'],
+    price:89.99, rating:4.7, colors:['crna','siva'], sizes:[38,40,42,44,46,48,50],
+    description:'Pletene hlače za trčanje s minimalnim, suvremenim krojem. Dri-FIT tkanina odvodi vlagu i drži vas suhima.',
+    tags:['trčanje','konzervativno','knit'] },
+  { id:'p2', name:'Own the Run Tights', brand:'adidas', category:'hlače', sport:['trčanje'], gender:['muški'],
+    price:64.99, rating:4.6, colors:['crna'], sizes:[38,40,42,44,46,48],
+    description:'Pripijene hlače za trčanje s reflektirajućim detaljima. AEROREADY upija znoj za suh osjećaj tijekom cijelog treninga.',
+    tags:['trčanje','konzervativno','tights'] },
+  { id:'p3', name:'Dri-FIT Challenger Pants', brand:'Nike', category:'hlače', sport:['trčanje','trening'], gender:['muški'],
+    price:74.99, rating:4.5, colors:['crna','siva'], sizes:[38,40,42,44,46,48],
+    description:'Univerzalne hlače za trčanje i zagrijavanje. Ravan kroj, klasičan dizajn, džepovi sa zatvaračem.',
+    tags:['trčanje','konzervativno'] },
+  { id:'p4', name:'Terrex Trail Running Pants', brand:'adidas', category:'hlače', sport:['trčanje','outdoor'], gender:['muški'],
+    price:79.99, rating:4.4, colors:['crna','siva'], sizes:[38,40,42,44,46],
+    description:'Vodonepropusne hlače za trail trčanje. Sloj pruža zaštitu od vjetra i lagane kiše tijekom planinskih izlazaka.',
+    tags:['trčanje','outdoor','trail','konzervativno'] },
+
+  // Tennis starter set (scenario 3)
+  { id:'t1', name:'Clash 100 Racket', brand:'Wilson', category:'oprema', sport:['tenis'], gender:['muški','ženski'],
+    price:89.99, rating:4.6, colors:['crna','crvena'], sizes:[],
+    description:'Fleksibilan reket za igrače koji uče. Lagana izvedba i odlična kontrola olakšavaju ulazak u tenis.',
+    tags:['tenis','tenis-starter','reket'] },
+  { id:'t2', name:'Court Lite 3 Tennis Shoes', brand:'Nike', category:'tenisice', sport:['tenis'], gender:['muški','ženski'],
+    price:64.99, rating:4.5, colors:['bijela','crna'], sizes:[40,41,42,43,44,45],
+    description:'Lagane tenisice za tenis s pojačanom potplatom za stabilnost na podlozi. Idealne za rekreativce.',
+    tags:['tenis','tenis-starter','tenisice'] },
+  { id:'t3', name:'Court Dri-FIT Polo', brand:'Nike', category:'majica', sport:['tenis'], gender:['muški','ženski'],
+    price:34.99, rating:4.4, colors:['bijela','crna','plava'], sizes:[38,40,42,44,46],
+    description:'Klasična polo majica za teniske terene. Dri-FIT tkanina odvodi vlagu, kroj omogućuje slobodan pokret.',
+    tags:['tenis','tenis-starter','polo'] },
+  { id:'t4', name:'Championship Tennis Balls (4x)', brand:'Wilson', category:'oprema', sport:['tenis'], gender:['muški','ženski'],
+    price:7.99, rating:4.3, colors:['žuta'], sizes:[],
+    description:'Pakiranje od 4 teniske loptice za sve podloge. Pouzdana izdržljivost i konzistentan odskok.',
+    tags:['tenis','tenis-starter','loptice'] },
+
+  // Extra catalogue items
+  { id:'x1', name:'Terrex Free Hiker', brand:'adidas', category:'tenisice', sport:['outdoor','planinarenje'], gender:['muški','ženski'],
+    price:189.99, rating:4.6, colors:['crna','siva','plava'], sizes:[40,41,42,43,44,45],
+    description:'Tenisice za planinarenje s Boost povratkom energije. Continental guma za pouzdan grip na različitim podlogama.',
+    tags:['outdoor','planinarenje','hike'] },
+  { id:'x2', name:'RS-X', brand:'Puma', category:'tenisice', sport:['lifestyle'], gender:['muški','ženski'],
+    price:109.99, rating:4.4, colors:['bijela','crvena','plava'], sizes:[40,41,42,43,44,45],
+    description:'Retro chunky tenisice s naglašenim potplatom. Više street stil nego performans model.',
+    tags:['lifestyle','retro'] },
+  { id:'x3', name:'Trening kratke hlače', brand:'Reebok', category:'hlače', sport:['trening'], gender:['muški'],
+    price:29.99, rating:4.2, colors:['crna','siva'], sizes:[38,40,42,44,46],
+    description:'Lagane kratke hlače za teretanu i kondicijske treninge. Mekan, prozračan materijal.',
+    tags:['trening','shorts'] },
+  { id:'x4', name:'Strike Football Jersey', brand:'Nike', category:'dres', sport:['nogomet'], gender:['muški'],
+    price:54.99, rating:4.5, colors:['plava','bijela','crvena'], sizes:[38,40,42,44,46],
+    description:'Nogometni dres izrađen od reciklirane Dri-FIT tkanine. Odvodi vlagu i ostaje lagan tijekom utakmica.',
+    tags:['nogomet','dres'] }
+];
+
+// =================== NLP / PARSER ===================
+const NUM_WORDS_HR = {
+  // basic
+  'nula':0,'jedan':1,'jedna':1,'jedno':1,'dva':2,'dvije':2,'tri':3,'četiri':4,'cetiri':4,
+  'pet':5,'šest':6,'sest':6,'sedam':7,'osam':8,'devet':9,'deset':10,
+  // teens
+  'jedanaest':11,'dvanaest':12,'trinaest':13,'četrnaest':14,'cetrnaest':14,'petnaest':15,
+  'šesnaest':16,'sesnaest':16,'sedamnaest':17,'osamnaest':18,'devetnaest':19,
+  // tens
+  'dvadeset':20,'trideset':30,'četrdeset':40,'cetrdeset':40,'pedeset':50,'šezdeset':60,'sezdeset':60,
+  'sedamdeset':70,'osamdeset':80,'devedeset':90,
+  // hundreds
+  'sto':100,'stotinu':100,'stotina':100,
+  'dvjesto':200,'dvjesta':200,'dvjestotine':200,'dvije':2,
+  'tristo':300,'tristotine':300,
+  'četiristo':400,'cetiristo':400,'petsto':500,'šeststo':600,'sesto':600,
+  'sedamsto':700,'osamsto':800,'devetsto':900,
+  'tisuću':1000,'tisuca':1000,'tisuca':1000,'tisuća':1000
+};
+
+function wordsToNumber(text) {
+  // Try direct digit first
+  const digit = text.match(/\b(\d{1,4})\b/);
+  if (digit) return parseInt(digit[1], 10);
+  // Word-based sums (handles "sto", "dvjesto", "osamdeset", "četrdeset dva", "sto pedeset")
+  const tokens = text.toLowerCase().split(/\s+/);
+  let total = 0, current = 0, found = false;
+  for (const t of tokens) {
+    const v = NUM_WORDS_HR[t];
+    if (v == null) continue;
+    found = true;
+    if (v === 100 || v === 1000) {
+      current = (current || 1) * v;
+      total += current;
+      current = 0;
+    } else {
+      current += v;
+    }
+  }
+  total += current;
+  return found ? total : null;
+}
+
+function parseQuery(rawText) {
+  const text = ' ' + rawText.toLowerCase().normalize('NFC') + ' ';
+  const q = {
+    category: null, sport: null, gender: null, brands: [],
+    maxPrice: null, style: null, colors: [], sizes: [], bundle: false,
+    ageHints: [], raw: rawText
+  };
+
+  // Category
+  if (/\btenisic/.test(text)) q.category = 'tenisice';
+  else if (/\bhlač|\btraperic|\btajic/.test(text)) q.category = 'hlače';
+  else if (/\bmajic|\bpolo|\bmajica/.test(text)) q.category = 'majica';
+  else if (/\bjakn/.test(text)) q.category = 'jakna';
+  else if (/\bdres/.test(text)) q.category = 'dres';
+  else if (/\bopremu|\boprema|\bkomplet|\bset\b|\bsve zajedno/.test(text)) { q.category = 'oprema'; q.bundle = true; }
+
+  // Sport
+  if (/\bmaraton/.test(text)) q.sport = 'maraton';
+  else if (/\btrčanj|\btrcanj|\btrkanj|\btrk\b/.test(text)) q.sport = 'trčanje';
+  else if (/\btenis\b|\btenisa\b|\btenisu\b/.test(text)) q.sport = 'tenis';
+  else if (/\bnogomet/.test(text)) q.sport = 'nogomet';
+  else if (/\bkošark|\bkosark/.test(text)) q.sport = 'košarka';
+  else if (/\btrening/.test(text)) q.sport = 'trening';
+  else if (/\boutdoor/.test(text)) q.sport = 'outdoor';
+
+  // Gender
+  if (/\bmušk|\bmusk|\bja sam muškarac|\bja sam muskarac/.test(text)) q.gender = 'muški';
+  else if (/\bžensk|\bzensk|\bžen[ae]\b/.test(text)) q.gender = 'ženski';
+  else if (/\bdijete\b|\bdjeca|\bdjete\b|\bdjetet/.test(text)) q.gender = 'dijete';
+  else if (/\bodras/.test(text)) q.gender = 'odrasli';
+
+  // Brands
+  const brandMap = [
+    ['nike','Nike'],['adidas','adidas'],['asics','Asics'],
+    ['new balance','New Balance'],['puma','Puma'],['reebok','Reebok'],
+    ['hoka','Hoka'],['wilson','Wilson']
+  ];
+  for (const [needle, label] of brandMap) {
+    if (text.includes(needle)) q.brands.push(label);
+  }
+
+  // Max price: "do X eura/€" or "do X kuna"
+  const priceMatch = text.match(/\bdo\s+([a-zćčšž0-9\s]+?)\s*(eura|euro|€|kuna|hrk)\b/);
+  if (priceMatch) {
+    const n = wordsToNumber(priceMatch[1].trim());
+    if (n != null && n > 0) q.maxPrice = n;
+  }
+  // "sve zajedno do X" without "eura" suffix
+  if (!q.maxPrice) {
+    const altMatch = text.match(/\b(?:sve\s+zajedno\s+do|ukupno\s+do|maksimum)\s+([a-zćčšž0-9\s]+?)\s*(eura|euro|€)?\b/);
+    if (altMatch) {
+      const n = wordsToNumber(altMatch[1].trim());
+      if (n != null && n > 0) q.maxPrice = n;
+    }
+  }
+
+  // Style
+  if (/\bkonzervativ/.test(text)) q.style = 'konzervativno';
+  else if (/\bcasual|\bopušten|\bopusten/.test(text)) q.style = 'casual';
+  else if (/\bsportski|\bsport\b/.test(text)) q.style = 'sportski';
+
+  // Colors
+  const colorMap = [
+    [/\bcrn[aeiou]/, 'crna'], [/\bbijel/, 'bijela'], [/\bcrven/, 'crvena'],
+    [/\bplav/, 'plava'], [/\bzelen/, 'zelena'], [/\bsiv/, 'siva'], [/\bžut|\bzut/, 'žuta']
+  ];
+  for (const [re, c] of colorMap) if (re.test(text)) q.colors.push(c);
+
+  // Sizes: "veličina 42", "broj 43", "42-ica"
+  const sizeMatch1 = text.match(/\b(?:veličin[ae]|velicin[ae]|broj|brojem)\s+([a-zćčšž0-9\s]+?)(?=[,.]|$)/);
+  if (sizeMatch1) {
+    const n = wordsToNumber(sizeMatch1[1].trim());
+    if (n != null && n >= 30 && n <= 50) q.sizes.push(n);
+  }
+  const sizeMatch2 = text.match(/\b(\d{2})[-\s]?ic[ae]?\b/);
+  if (sizeMatch2) q.sizes.push(parseInt(sizeMatch2[1], 10));
+
+  // Age hints
+  const ageMatch = text.match(/\bimam\s+([a-zćčšž0-9\s]+?)\s+godin/);
+  if (ageMatch) {
+    const n = wordsToNumber(ageMatch[1].trim());
+    if (n != null) q.ageHints.push({ age: n });
+  }
+  if (/\bmlad\b|\bmlađ/.test(text)) q.ageHints.push({ tag:'mlad' });
+  if (/\bpočetni|\bpocetni|\bžel[ie]m\s+(za)?početi|\bpočet[ae]k/.test(text)) q.ageHints.push({ tag:'početnik' });
+
+  // Bundle hint
+  if (/\bkomplet\b|\bsve zajedno\b|\bcijeli set\b|\bopremu trebam\b|\bkakvu opremu/.test(text)) q.bundle = true;
+
+  return q;
+}
+
+// =================== STATE ===================
+const state = {
+  history: [],
+  currentScreen: 'landing',
+  recognition: null,
+  isListening: false,
+  listenStartedAt: 0,
+  listenMode: 'new', // 'new' | 'refine'
+  baseResults: [],   // last query's full results, for refinement
+  currentQuery: null,
+  pendingQuery: null, // when waiting on followup
+  currentProductId: null,
+  cart: [],
+  detailSize: null
+};
+
+// =================== NAVIGATION ===================
+function show(screenId, pushHistory = true) {
+  if (pushHistory && state.currentScreen !== screenId) {
+    state.history.push(state.currentScreen);
+  }
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screenId).classList.add('active');
+  state.currentScreen = screenId;
+  updateCartBadges();
+}
+function goBack() {
+  const prev = state.history.pop();
+  if (prev) show(prev, false);
+  else goLanding();
+}
+function goLanding() { state.history = []; show('landing', false); }
+function goCart() { show('cart'); renderCart(); }
+
+// =================== SPEECH RECOGNITION ===================
+function getRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'hr-HR';
+  r.continuous = true;
+  r.interimResults = true;
+  r.maxAlternatives = 1;
+  return r;
+}
+
+function startListening(mode = 'new') {
+  state.listenMode = mode;
+  const r = getRecognition();
+  if (!r) {
+    showError('Glasovni unos nije podržan', 'Vaš preglednik ne podržava Web Speech API. Preporučamo Chrome na desktopu ili Androidu.');
+    return;
+  }
+  state.recognition = r;
+  document.getElementById('transcript').textContent = '';
+  document.getElementById('listeningLabel').textContent = 'Slušam...';
+  document.getElementById('listeningHint').textContent = 'Dodirnite bilo gdje za prekid';
+  document.getElementById('fallbackInput').value = '';
+  show('listening');
+  document.getElementById('fallbackInput').focus();
+
+  let finalText = '';
+  let lastInterim = '';
+
+  r.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalText += t;
+        lastInterim = '';
+      } else {
+        interim += t;
+        lastInterim = interim;
+      }
+    }
+    const live = (finalText + interim).trim();
+    document.getElementById('fallbackInput').value = live;
+    document.getElementById('transcript').textContent = '';
+  };
+  r.onstart = () => console.log('[SR] onstart');
+  r.onerror = (e) => {
+    console.log('[SR] onerror:', e.error);
+    state.isListening = false;
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      showListeningError('Mikrofon nije dostupan', 'Dopustite pristup mikrofonu u pregledniku, ili upišite upit ispod.');
+    } else if (e.error === 'no-speech') {
+      showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
+    } else if (e.error === 'network') {
+      showListeningError('Nema interneta', 'Prepoznavanje govora zahtijeva internetsku vezu. Upišite upit ispod.');
+    } else {
+      showListeningError('Greška: ' + e.error, 'Glasovni unos nije uspio. Upišite upit ispod.');
+    }
+  };
+  r.onend = () => {
+    console.log('[SR] onend, finalText:', JSON.stringify(finalText), 'lastInterim:', JSON.stringify(lastInterim));
+    state.isListening = false;
+    // Use finalText first; fall back to lastInterim if the engine never emitted a final result
+    const text = (finalText || lastInterim).trim();
+    if (text) {
+      handleSpeechResult(text);
+    } else if (state.currentScreen === 'listening') {
+      // Don't silently go to landing — show fallback so user can type instead
+      showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
+    }
+  };
+
+  try {
+    r.start();
+    state.isListening = true;
+    state.listenStartedAt = Date.now();
+  } catch (err) {
+    showError('Greška pri pokretanju mikrofona', err.message || 'Pokušajte ponovo.');
+  }
+}
+
+function showListeningError(title, hint) {
+  document.getElementById('listeningLabel').textContent = title;
+  document.getElementById('transcript').textContent = '';
+  document.getElementById('listeningHint').textContent = hint;
+  document.getElementById('fallbackInput').focus();
+}
+
+function submitFallbackText() {
+  const text = document.getElementById('fallbackInput').value.trim();
+  if (!text) return;
+  document.getElementById('fallbackInput').value = '';
+  if (state.recognition) try { state.recognition.stop(); } catch(e) {}
+  handleSpeechResult(text);
+}
+
+function stopListening() {
+  if (state.recognition && state.isListening && Date.now() - state.listenStartedAt > 600) {
+    try { state.recognition.stop(); } catch(e) {}
+  }
+}
+
+function handleSpeechResult(text) {
+  const q = parseQuery(text);
+
+  if (state.listenMode === 'refine' && state.currentScreen !== 'listening') {
+    // shouldn't happen — but safeguard
+    applyRefinement(q);
+    return;
+  }
+
+  if (state.listenMode === 'refine') {
+    applyRefinement(q);
+    return;
+  }
+
+  // new query
+  if (needsFollowup(q)) {
+    state.pendingQuery = q;
+    showFollowup(q);
+    return;
+  }
+
+  runQuery(q);
+}
+
+// =================== FOLLOW-UP ===================
+function needsFollowup(q) {
+  // Tennis bundle without specified audience → ask adult/child
+  if (q.sport === 'tenis' && q.bundle && !q.gender) return true;
+  return false;
+}
+function showFollowup(q) {
+  const qEl = document.getElementById('followupQuestion');
+  const chipsEl = document.getElementById('followupChips');
+  qEl.textContent = 'Za koga je oprema? Za odraslog ili dijete?';
+  chipsEl.innerHTML = '';
+  ['Odrasli','Dijete'].forEach(label => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = label;
+    b.onclick = () => {
+      const merged = { ...state.pendingQuery, gender: label === 'Dijete' ? 'dijete' : 'odrasli' };
+      state.pendingQuery = null;
+      runQuery(merged);
+    };
+    chipsEl.appendChild(b);
+  });
+  show('followup');
+}
+
+// =================== QUERY EXECUTION ===================
+function filterProducts(q) {
+  let results = PRODUCTS.slice();
+
+  if (q.bundle && q.sport === 'tenis') {
+    results = results.filter(p => p.tags.includes('tenis-starter'));
+  } else {
+    if (q.category) results = results.filter(p => p.category === q.category);
+    if (q.sport) {
+      // Maraton is a kind of trčanje — match either.
+      const sportSet = q.sport === 'maraton' ? ['maraton','trčanje'] : [q.sport];
+      results = results.filter(p => p.sport.some(s => sportSet.includes(s)));
+    }
+    if (q.gender && q.gender !== 'odrasli') {
+      results = results.filter(p => p.gender.includes(q.gender));
+    }
+  }
+
+  if (q.brands.length) {
+    results = results.filter(p => q.brands.includes(p.brand));
+  }
+
+  if (q.maxPrice && !q.bundle) {
+    results = results.filter(p => p.price <= q.maxPrice);
+  }
+
+  if (q.colors.length) {
+    results = results.filter(p => p.colors.some(c => q.colors.includes(c)));
+  }
+
+  if (q.sizes.length) {
+    results = results.filter(p => p.sizes.length === 0 || p.sizes.some(s => q.sizes.includes(s)));
+  }
+
+  if (q.style === 'konzervativno') {
+    results = results.filter(p => p.tags.includes('konzervativno') || p.category === 'hlače');
+  }
+
+  // Bundle total check
+  if (q.bundle && q.maxPrice) {
+    const total = results.reduce((s, p) => s + p.price, 0);
+    if (total > q.maxPrice) {
+      // sort by price ascending, take cheapest combo
+      results.sort((a,b) => a.price - b.price);
+    }
+  }
+
+  results.sort((a,b) => b.rating - a.rating);
+  return results;
+}
+
+function runQuery(q) {
+  state.currentQuery = q;
+  const results = filterProducts(q);
+  state.baseResults = results;
+  renderResults(results, q);
+  show('results');
+}
+
+function applyRefinement(refineQ) {
+  const base = state.currentQuery || {};
+  // Merge fields: arrays union, scalars overridden if present
+  const merged = {
+    ...base,
+    brands: refineQ.brands.length ? refineQ.brands : base.brands,
+    colors: refineQ.colors.length ? refineQ.colors : base.colors,
+    sizes:  refineQ.sizes.length  ? refineQ.sizes  : base.sizes,
+    maxPrice: refineQ.maxPrice != null ? refineQ.maxPrice : base.maxPrice,
+    gender: refineQ.gender || base.gender,
+    style:  refineQ.style  || base.style
+  };
+  // "pokaži mi više" → drop filters
+  if (/pokaži mi više|pokazi mi vise|prikaži više|prikazi vise|više opcija|vise opcija/i.test(refineQ.raw)) {
+    merged.brands = [];
+    merged.colors = [];
+    merged.sizes = [];
+    merged.maxPrice = null;
+  }
+  state.currentQuery = merged;
+  const results = filterProducts(merged);
+  state.baseResults = results;
+  renderResults(results, merged);
+  show('results', false);
+}
+
+// =================== RENDERING ===================
+function brandGrad(brand) {
+  return BRAND_GRADIENTS[brand] || 'linear-gradient(135deg, #333 0%, #555 100%)';
+}
+function fmtPrice(n) {
+  return n.toFixed(2).replace('.', ',') + ' €';
+}
+
+function renderResults(results, q) {
+  const header = document.getElementById('resultsHeader');
+  const bundleBanner = document.getElementById('bundleBanner');
+  const list = document.getElementById('productList');
+  list.innerHTML = '';
+
+  if (results.length === 0) {
+    header.innerHTML = '';
+    bundleBanner.classList.add('hidden');
+    list.innerHTML = `
+      <div class="no-results">
+        <div class="big">🔎</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:8px">Nismo pronašli proizvode</div>
+        <div style="font-size:14px;margin-bottom:20px">Pokušajte ponovo s drugačijim opisom.</div>
+        <button class="btn btn-primary" onclick="startListening('new')">Pokušaj ponovo</button>
+      </div>`;
+    return;
+  }
+
+  const word = pluralResults(results.length);
+  header.innerHTML = `Pronašli smo <strong>${results.length} ${word}</strong> za vas`;
+
+  if (q.bundle && q.sport === 'tenis') {
+    const total = results.reduce((s, p) => s + p.price, 0);
+    bundleBanner.classList.remove('hidden');
+    bundleBanner.innerHTML = `
+      <div>Tenis starter paket</div>
+      <div class="total">${fmtPrice(total)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">${results.length} artikla, sve što vam treba za početak</div>
+    `;
+  } else {
+    bundleBanner.classList.add('hidden');
+  }
+
+  for (const p of results) {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <div class="product-image" style="background:${brandGrad(p.brand)}">
+        <div class="brand-watermark">${p.brand}</div>
+        <div class="product-image-name">${p.name}</div>
+        <div class="rating">★ ${p.rating.toFixed(1)}</div>
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.name}</div>
+        <div class="product-brand">${p.brand} · ${p.category}</div>
+        <div class="product-price">${fmtPrice(p.price)}</div>
+        <div class="product-actions">
+          <button class="btn btn-secondary" data-id="${p.id}" data-act="detail">Pogledaj detalje</button>
+          <button class="btn btn-primary" data-id="${p.id}" data-act="add">Dodaj u košaricu</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  }
+  list.onclick = (e) => {
+    const btn = e.target.closest('button[data-id]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.act === 'detail') openDetail(id);
+    else if (btn.dataset.act === 'add') addToCart(id);
+  };
+}
+
+function pluralResults(n) {
+  // Croatian: 1 = rezultat, 2-4 = rezultata, 5+ = rezultata
+  if (n % 10 === 1 && n % 100 !== 11) return 'rezultat';
+  if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return 'rezultata';
+  return 'rezultata';
+}
+
+// =================== DETAIL ===================
+function openDetail(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  state.currentProductId = id;
+  state.detailSize = p.sizes.length ? p.sizes[Math.floor(p.sizes.length/2)] : null;
+  renderDetail(p);
+  show('detail');
+}
+
+function renderDetail(p) {
+  const body = document.getElementById('detailBody');
+  const sizeChips = p.sizes.length
+    ? `<div class="section-title">Veličina</div>
+       <div class="size-chips">
+         ${p.sizes.map(s => `<button class="size-chip ${s===state.detailSize?'selected':''}" data-size="${s}">${s}</button>`).join('')}
+       </div>`
+    : '';
+
+  // Related: same category or sport, excluding self
+  const related = PRODUCTS.filter(x =>
+    x.id !== p.id && (x.category === p.category || x.sport.some(s => p.sport.includes(s)))
+  ).slice(0, 6);
+
+  body.innerHTML = `
+    <div class="detail-image" style="background:${brandGrad(p.brand)}">
+      <div class="brand-watermark">${p.brand}</div>
+      <div class="product-image-name">${p.name}</div>
+      <div class="rating">★ ${p.rating.toFixed(1)}</div>
+    </div>
+    <div class="detail-name">${p.name}</div>
+    <div class="detail-brand">${p.brand} · ${p.category}</div>
+    <div class="detail-price">${fmtPrice(p.price)}</div>
+    <div class="detail-desc">${p.description}</div>
+    ${sizeChips}
+    <button class="btn btn-primary btn-block" style="margin-top:20px" onclick="addToCart('${p.id}')">Dodaj u košaricu</button>
+    ${related.length ? `
+      <div class="section-title">Srodni proizvodi</div>
+      <div class="related-scroll">
+        ${related.map(r => `
+          <div class="related-card" data-related-id="${r.id}">
+            <div class="product-image" style="background:${brandGrad(r.brand)}">
+              <div class="brand-watermark">${r.brand}</div>
+              <div class="product-image-name">${r.name}</div>
+            </div>
+            <div class="related-body">
+              <div class="related-name">${r.name}</div>
+              <div class="related-price">${fmtPrice(r.price)}</div>
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
+  `;
+
+  // Wire up size chips & related
+  body.querySelectorAll('.size-chip').forEach(c => {
+    c.onclick = () => {
+      state.detailSize = parseInt(c.dataset.size, 10);
+      body.querySelectorAll('.size-chip').forEach(x => x.classList.toggle('selected', x === c));
+    };
+  });
+  body.querySelectorAll('.related-card').forEach(c => {
+    c.onclick = () => openDetail(c.dataset.relatedId);
+  });
+}
+
+// =================== CART ===================
+function addToCart(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  const size = state.currentScreen === 'detail' ? state.detailSize : null;
+  const key = id + '::' + (size ?? '');
+  const existing = state.cart.find(x => x.key === key);
+  if (existing) existing.qty++;
+  else state.cart.push({ key, id, size, qty: 1 });
+  updateCartBadges();
+  flashAdded();
+}
+
+function flashAdded() {
+  // Lightweight toast — flash the cart badge briefly
+  const targets = ['cartBadgeResults','cartBadgeDetail'];
+  for (const tid of targets) {
+    const el = document.getElementById(tid);
+    if (!el || el.classList.contains('hidden')) continue;
+    el.animate(
+      [{ transform:'scale(1)' },{ transform:'scale(1.5)' },{ transform:'scale(1)' }],
+      { duration: 320, easing: 'ease-out' }
+    );
+  }
+}
+
+function removeFromCart(key) {
+  state.cart = state.cart.filter(x => x.key !== key);
+  updateCartBadges();
+  renderCart();
+}
+
+function updateCartBadges() {
+  const count = state.cart.reduce((s, x) => s + x.qty, 0);
+  ['cartBadgeResults','cartBadgeDetail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count > 0) {
+      el.classList.remove('hidden');
+      el.textContent = count;
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+}
+
+function renderCart() {
+  const list = document.getElementById('cartList');
+  const footer = document.getElementById('cartFooter');
+  if (state.cart.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="big">🛒</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:8px">Vaša košarica je prazna</div>
+        <div style="font-size:14px">Pronađite proizvode glasovnom pretragom.</div>
+      </div>`;
+    footer.innerHTML = `<button class="btn btn-primary btn-block" onclick="goLanding()">Pokreni pretragu</button>`;
+    return;
+  }
+  list.innerHTML = state.cart.map(item => {
+    const p = PRODUCTS.find(x => x.id === item.id);
+    if (!p) return '';
+    return `
+      <div class="cart-item">
+        <div class="cart-thumb" style="background:${brandGrad(p.brand)}">${p.brand.slice(0,2).toUpperCase()}</div>
+        <div class="cart-info">
+          <div class="cart-name">${p.name}</div>
+          <div class="cart-meta">${p.brand}${item.size ? ' · vel. '+item.size : ''} · ${item.qty}×</div>
+          <div class="cart-price">${fmtPrice(p.price * item.qty)}</div>
+        </div>
+        <button class="cart-remove" onclick="removeFromCart('${item.key}')" aria-label="Ukloni">×</button>
+      </div>`;
+  }).join('');
+  const total = state.cart.reduce((s, x) => {
+    const p = PRODUCTS.find(y => y.id === x.id);
+    return s + (p ? p.price * x.qty : 0);
+  }, 0);
+  footer.innerHTML = `
+    <div class="cart-total">
+      <span class="label">Ukupno</span>
+      <span class="amount">${fmtPrice(total)}</span>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="goBack()">Nastavi kupovinu</button>
+  `;
+}
+
+// =================== ERROR ===================
+function showError(title, msg) {
+  document.getElementById('errorTitle').textContent = title;
+  document.getElementById('errorMsg').textContent = msg;
+  show('error');
+}
+
+// =================== INIT ===================
+document.getElementById('landingTap').addEventListener('click', (e) => { e.stopPropagation(); startListening('new'); });
+
+// Tap anywhere on the listening screen to stop — guarded against ghost clicks
+document.getElementById('screen-listening').addEventListener('click', (e) => {
+  if (e.target.closest('#listeningFallback')) return; // don't intercept fallback input area
+  stopListening();
+});
+
+// Browser support check
+window.addEventListener('load', () => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    // Quietly note — user will see message on first tap
+    console.warn('Web Speech API not supported in this browser');
+  }
+});
+
+// Debug helper: invoke from console to test scenarios without a microphone
+window.simulateSpeech = function(text) {
+  state.listenMode = 'new';
+  handleSpeechResult(text);
+};
+window.simulateRefine = function(text) {
+  state.listenMode = 'refine';
+  handleSpeechResult(text);
+};
+//]]>
+</script>
+</body>
+</html>
