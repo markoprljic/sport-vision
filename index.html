@@ -588,10 +588,11 @@
     </div>
     <div class="listening-label" id="listeningLabel">Slušam...</div>
     <div class="transcript-live" id="transcript"></div>
-    <div class="hint" id="listeningHint">Dodirnite bilo gdje za prekid</div>
-    <div id="listeningFallback" style="padding:0 24px;width:100%;margin-top:8px" onclick="event.stopPropagation()">
+    <button id="stopBtn" onclick="stopListening()" style="margin-top:28px;padding:14px 40px;background:var(--brand);color:#fff;border:none;border-radius:999px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(227,28,33,0.35)">Zaustavi</button>
+    <div class="hint" id="listeningHint" style="margin-top:12px">Pritisnite za zaustavljanje snimanja</div>
+    <div id="listeningFallback" style="padding:0 24px;width:100%;margin-top:20px" onclick="event.stopPropagation()">
       <div style="display:flex;gap:8px">
-        <input id="fallbackInput" type="text" placeholder="Upišite što tražite..." style="flex:1;padding:12px 16px;border:2px solid var(--brand);border-radius:12px;font-size:16px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')submitFallbackText()">
+        <input id="fallbackInput" type="text" placeholder="Upišite što tražite..." style="flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:12px;font-size:16px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')submitFallbackText()">
         <button onclick="submitFallbackText()" style="padding:12px 16px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Traži</button>
       </div>
     </div>
@@ -1136,6 +1137,8 @@ async function startListening(mode = 'new') {
   _mediaRecorder.start(200);
   state.isListening = true;
   state.listenStartedAt = Date.now();
+  const stopBtn = document.getElementById('stopBtn');
+  if (stopBtn) stopBtn.style.display = '';
   startLiveTranscript();
 }
 
@@ -1155,8 +1158,10 @@ function submitFallbackText() {
 }
 
 async function stopListening(skipTranscribe = false) {
-  if (!state.isListening || Date.now() - state.listenStartedAt < 600) return;
+  if (!state.isListening || Date.now() - state.listenStartedAt < 1500) return;
   state.isListening = false;
+  const stopBtn = document.getElementById('stopBtn');
+  if (stopBtn) stopBtn.style.display = 'none';
 
   if (skipTranscribe || !_mediaRecorder || _mediaRecorder.state === 'inactive') {
     stopLiveTranscript();
@@ -1618,11 +1623,6 @@ function showError(title, msg) {
 // =================== INIT ===================
 document.getElementById('landingTap').addEventListener('click', (e) => { e.stopPropagation(); startListening('new'); });
 
-// Tap anywhere on the listening screen to stop — guarded against ghost clicks
-document.getElementById('screen-listening').addEventListener('click', (e) => {
-  if (e.target.closest('#listeningFallback')) return; // don't intercept fallback input area
-  stopListening();
-});
 
 // Browser support check
 window.addEventListener('load', () => {
