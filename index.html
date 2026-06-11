@@ -922,66 +922,65 @@ function parseQuery(rawText) {
   };
 
   // ---- Category ----
+  // Check shoes ONLY if explicit shoe words present (not just sport context)
   if (has(/\btenisic/, /\bcipel/, /\bobuc/, /\bobut/, /\bpatik/, /\bsneaker/))
     q.category = 'tenisice';
-  else if (has(/\bhlac/, /\bhlac/, /\btrenirk/, /\btajic/, /\bleggin/, /\bpantalone/, /\bpantalon/))
+  else if (has(/hlac/, /\btrenirk/, /tajic/, /\bleggin/, /\bpantalone/, /\bpantalon/))
     q.category = 'hlače';
-  else if (has(/\bmajic/, /\bpolo/, /\bshirt/, /\btshirt/, /\bt-shirt/))
+  else if (has(/\bmajic/, /\bpolo/, /\bshirt/, /\btshirt/))
     q.category = 'majica';
   else if (has(/\bjakn/))
     q.category = 'jakna';
   else if (has(/\bdres/))
     q.category = 'dres';
 
-  // ---- Bundle / kit ----
-  if (has(
-    /\bkomplet/, /\bsve zajedno/, /\bcijeli set/, /\bopremu trebam/, /\bkakvu opremu/,
-    /\boprema/, /\bset\b/, /\bkit\b/, /\bstarter/, /\bza pocetak/, /\bza pocet/,
-    /\bpoceti igrati/, /\bzeljm igrati/, /\bzelim igrati/, /\bzapoceti/, /\bkrenuti igrati/,
-    /\bkakvu opremu/, /\bsto trebam/, /\sto mi treba/, /\btreba mi oprema/,
-    /\bpocetni paket/, /\bpocetnik/
-  )) q.bundle = true;
-
-  if (q.bundle && !q.category) q.category = 'oprema';
+  // ---- Gender (before bundle, so we know gender when setting category inferences) ----
+  if (has(/muski/, /muske/, /muskog/, /muskarca/, /muskarci/, /muskarac/, /\bza muskarce/, /muskarcima/))
+    q.gender = 'muški';
+  else if (has(/zenski/, /zenske/, /\bza zene/, /zenskima/))
+    q.gender = 'ženski';
+  else if (has(/\bdijete/, /\bdjeca/, /\bdjete/, /djecij/, /djecak/, /djevojcic/))
+    q.gender = 'dijete';
+  else if (has(/odrasli/, /odraslog/, /\bza odraslog/, /\bza odraslu/, /odraslih/))
+    q.gender = 'odrasli';
 
   // ---- Sport ----
-  if (has(/\bmaraton/, /\bmaratonsk/, /\butrk/, /\btrka\b/))
+  if (has(/maraton/, /maratonsk/, /utrk/, /\btrka\b/))
     q.sport = 'maraton';
-  else if (has(/\btrcanj/, /\btrcati/, /\btrcam/, /\btrk\b/, /\bjogging/, /\bjog\b/, /\brun\b/))
+  else if (has(/trcanj/, /trcati/, /trcam/, /\btrk\b/, /jogging/, /\bjog\b/, /\brun\b/))
     q.sport = 'trčanje';
-  else if (has(/\btenis\b/, /\btenisa/, /\btenisu/, /\btenisk/, /\bigrati tenis/))
+  else if (has(/\btenis\b/, /tenisa/, /tenisu/, /tenisk/, /igrati tenis/))
     q.sport = 'tenis';
-  else if (has(/\bnogomet/, /\bfootball/, /\bfutsala/, /\bfutsal/))
+  else if (has(/nogomet/, /football/, /futsal/))
     q.sport = 'nogomet';
-  else if (has(/\bkosark/, /\bbasketball/))
+  else if (has(/kosark/, /basketball/))
     q.sport = 'košarka';
-  else if (has(/\btrening/, /\bfitness/, /\bteretana/, /\bgym\b/))
+  else if (has(/trening/, /fitness/, /teretana/, /\bgym\b/))
     q.sport = 'trening';
-  else if (has(/\boutdoor/, /\bplaninaren/, /\bplaninaski/))
+  else if (has(/outdoor/, /planinaren/))
     q.sport = 'outdoor';
 
-  // If sport=tenis and no category set, and bundle detected — keep category=oprema
-  // If someone says "tenis" and "pocetak/pocetak/starter" without explicit category, it's a bundle
-  if (q.sport === 'tenis' && !q.category && has(
-    /\bpoceti/, /\bpocetnik/, /\bstarter/, /\bpocetna/, /\bkrenuti/, /\bzelim igrati/,
-    /\bkakvu opremu/, /\sto trebam/, /\btreba mi/, /\bpaket/, /\bkomplet/
-  )) {
+  // ---- Category inference when not explicitly stated ----
+  // Maraton always implies running shoes if no other category given
+  if (q.sport === 'maraton' && !q.category) q.category = 'tenisice';
+
+  // Running + male gender hint + no shoe word → pants (Scenario 1 pattern)
+  if (q.sport === 'trčanje' && q.gender === 'muški' && !q.category) q.category = 'hlače';
+
+  // ---- Bundle / kit — only triggered by specific phrases, NOT just the word "oprema" ----
+  if (has(
+    /\bkomplet/, /sve zajedno/, /cijeli set/, /opremu trebam/, /kakvu opremu/,
+    /\bstarter/, /za pocetak/, /za pocet/,
+    /poceti igrati/, /zelim igrati/, /zapoceti/, /krenuti igrati/, /zelim poceti/,
+    /sto trebam/, /sto mi treba/, /treba mi oprema/,
+    /pocetni paket/, /pocetnik/
+  )) q.bundle = true;
+
+  // Tennis + any kit/start intent → bundle
+  if (q.sport === 'tenis' && has(/poceti/, /starter/, /oprema/, /opremu/, /pocetnik/, /paket/, /komplet/, /treba mi/, /sto trebam/))
     q.bundle = true;
-    q.category = 'oprema';
-  }
 
-  // ---- Running: if no category but sport=trčanje/maraton, imply tenisice only if shoes words present
-  // (leave category null to show all running products)
-
-  // ---- Gender ----
-  if (has(/\bmuski/, /\bmuskarac/, /\bmuskarci/, /\bza muskarce/, /\bja sam muskarac/))
-    q.gender = 'muški';
-  else if (has(/\bzenski/, /\bzen[ae]\b/, /\bza zene/, /\bza zensku/))
-    q.gender = 'ženski';
-  else if (has(/\bdijete/, /\bdjeca/, /\bdjete/, /\bdjecij/, /\bdjecak/, /\bdjevojcic/))
-    q.gender = 'dijete';
-  else if (has(/\bodrasli/, /\bodraslog/, /\bza odraslog/, /\bza odraslu/))
-    q.gender = 'odrasli';
+  if (q.bundle && !q.category) q.category = 'oprema';
 
   // ---- Brands ----
   const brandMap = [
@@ -1249,7 +1248,15 @@ async function stopListening(skipTranscribe = false) {
 function showRecognised(text) {
   document.getElementById('transcript').innerHTML = `<span class="final">${text}</span>`;
   document.getElementById('listeningLabel').textContent = 'Prepoznato:';
-  document.getElementById('listeningHint').textContent = '';
+  const q = parseQuery(text);
+  const parts = [];
+  if (q.category) parts.push(q.category);
+  if (q.sport)    parts.push(q.sport);
+  if (q.gender)   parts.push(q.gender);
+  if (q.bundle)   parts.push('bundle');
+  if (q.brands.length) parts.push(q.brands.join('+'));
+  if (q.maxPrice) parts.push('≤'+q.maxPrice+'€');
+  document.getElementById('listeningHint').textContent = parts.length ? '→ ' + parts.join(', ') : '(nema filtera)';
 }
 
 // =================== DEMO MODAL ===================
@@ -1316,6 +1323,8 @@ function showFollowup(q) {
 
 // =================== QUERY EXECUTION ===================
 function filterProducts(q) {
+  console.log('[Query]', JSON.stringify({category:q.category, sport:q.sport, gender:q.gender, brands:q.brands, maxPrice:q.maxPrice, bundle:q.bundle}));
+
   let results = PRODUCTS.slice();
 
   if (q.bundle && q.sport === 'tenis') {
@@ -1323,13 +1332,14 @@ function filterProducts(q) {
   } else {
     if (q.category) results = results.filter(p => p.category === q.category);
     if (q.sport) {
-      // Maraton is a kind of trčanje — match either.
       const sportSet = q.sport === 'maraton' ? ['maraton','trčanje'] : [q.sport];
       results = results.filter(p => p.sport.some(s => sportSet.includes(s)));
     }
-    if (q.gender && q.gender !== 'odrasli') {
-      results = results.filter(p => p.gender.includes(q.gender));
-    }
+  }
+
+  // Gender filter applies always (including tennis bundle — adult vs child)
+  if (q.gender && q.gender !== 'odrasli') {
+    results = results.filter(p => p.gender.includes(q.gender));
   }
 
   if (q.brands.length) {
