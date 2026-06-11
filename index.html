@@ -271,26 +271,34 @@
     padding: 16px;
     color: rgba(255,255,255,0.95);
     position: relative;
+    overflow: hidden;
+    background: #f0f0f0;
+  }
+  .product-image img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #fff;
   }
   .product-image .brand-watermark {
     position: absolute; top: 14px; right: 16px;
     font-size: 12px; font-weight: 800;
     letter-spacing: 2px;
-    opacity: 0.85;
+    opacity: 0.7;
     text-transform: uppercase;
+    color: #333;
+    z-index: 1;
   }
-  .product-image .product-image-name {
-    font-size: 18px; font-weight: 700; line-height: 1.25;
-    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
-    max-width: 80%;
-  }
+  .product-image .product-image-name { display: none; }
   .product-image .rating {
     position: absolute; bottom: 14px; right: 16px;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.55);
     padding: 4px 8px;
     border-radius: 999px;
     font-size: 12px; font-weight: 600;
     display: flex; align-items: center; gap: 4px;
+    color: #fff;
+    z-index: 1;
   }
   .product-body { padding: 14px 16px 16px; }
   .product-name { font-size: 16px; font-weight: 700; line-height: 1.3; }
@@ -340,8 +348,16 @@
     color: #fff;
     position: relative;
     margin-bottom: 16px;
+    background: #f5f5f5;
+    overflow: hidden;
   }
-  .detail-image .product-image-name { font-size: 24px; }
+  .detail-image img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #fff;
+  }
+  .detail-image .product-image-name { display: none; }
   .detail-name { font-size: 22px; font-weight: 800; line-height: 1.25; }
   .detail-brand { font-size: 14px; color: var(--muted); margin-top: 4px; }
   .detail-price { font-size: 26px; font-weight: 800; margin-top: 10px; color: var(--brand); }
@@ -394,10 +410,13 @@
     width: 64px; height: 64px;
     border-radius: 10px;
     flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff;
-    font-weight: 800;
-    font-size: 11px;
+    overflow: hidden;
+    background: #f0f0f0;
+  }
+  .cart-thumb img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #fff;
   }
   .cart-info { flex: 1; min-width: 0; }
   .cart-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
@@ -651,92 +670,118 @@ const BRAND_GRADIENTS = {
   'Reebok':      'linear-gradient(135deg, #1a1a3a 0%, #2d2d5a 100%)'
 };
 
+const IMG_BASE = 'https://www.sportvision.hr/files/thumbs/files/images/slike_proizvoda/media/';
+function svImg(sku) {
+  const prefix = sku.slice(0,3);
+  return `${IMG_BASE}${prefix}/${sku}/images/thumbs_800/${sku}_800_800px.jpg.webp`;
+}
+
 const PRODUCTS = [
-  // Running shoes (scenario 2)
+  // Running shoes (scenario 2) — real sportvision.hr products
   { id:'r1', name:'Air Zoom Pegasus 41', brand:'Nike', category:'tenisice', sport:['trčanje','maraton','trening'], gender:['muški','ženski'],
-    price:129.99, rating:4.8, colors:['crna','bijela','plava'], sizes:[40,41,42,43,44,45],
+    price:111.99, rating:4.8, colors:['crna','bijela','plava'], sizes:[40,41,42,43,44,45],
+    image:svImg('FQ1356-006'),
     description:'Univerzalne tenisice za trčanje s odgovornim Air Zoom jastukom. Idealne za dnevne treninge i duže staze.',
     tags:['trčanje','daily'] },
-  { id:'r2', name:'Adizero Boston 12', brand:'adidas', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
-    price:149.99, rating:4.7, colors:['crna','crvena','bijela'], sizes:[40,41,42,43,44,45],
+  { id:'r2', name:'ADIZERO BOSTON 12', brand:'adidas', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
+    price:111.99, rating:4.7, colors:['crna','crvena','bijela'], sizes:[40,41,42,43,44,45],
+    image:svImg('JI4477'),
     description:'Brze tenisice za tempo treninge i utrke. LightStrike Pro međupodplat za maksimalan odraz energije.',
     tags:['trčanje','tempo','maraton'] },
-  { id:'r3', name:'Gel-Nimbus 26', brand:'Asics', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
-    price:189.99, rating:4.9, colors:['plava','siva','crna'], sizes:[40,41,42,43,44,45,46],
-    description:'Maksimalan komfor i amortizacija za duge dionice. PureGEL tehnologija omogućuje meka prizemljenja korak za korakom.',
-    tags:['trčanje','komfor','dugo'] },
-  { id:'r4', name:'Fresh Foam X 1080v13', brand:'New Balance', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
-    price:179.99, rating:4.7, colors:['crna','bijela','siva'], sizes:[40,41,42,43,44,45],
-    description:'Premium dnevne tenisice za sve dionice. Fresh Foam X međupodplat za uravnotežen i mekan osjećaj.',
-    tags:['trčanje','komfor'] },
-  { id:'r5', name:'Vaporfly 3', brand:'Nike', category:'tenisice', sport:['trčanje','maraton','utrka'], gender:['muški','ženski'],
-    price:249.99, rating:4.9, colors:['crvena','bijela'], sizes:[40,41,42,43,44,45],
-    description:'Vrhunske trkače tenisice za maratonske rekorde. ZoomX pjena i karbonska ploča za eksplozivan odraz.',
-    tags:['trčanje','utrka','maraton','elite'] },
-  { id:'r6', name:'Clifton 9', brand:'Hoka', category:'tenisice', sport:['trčanje','outdoor'], gender:['muški','ženski'],
-    price:159.99, rating:4.6, colors:['crna','plava','siva'], sizes:[40,41,42,43,44,45],
-    description:'Lagani komfor i ravnomjeran osjećaj u svakom koraku. Omiljen model za rekreativne trkače.',
-    tags:['trčanje','komfor','laganost'] },
-  { id:'r7', name:'Ultraboost Light', brand:'adidas', category:'tenisice', sport:['trčanje','trening'], gender:['muški','ženski'],
-    price:169.99, rating:4.6, colors:['crna','bijela','siva'], sizes:[40,41,42,43,44,45],
-    description:'Boost povrat energije u njegovoj najlakšoj verziji. Primeknit gornjište pruža kompresivnu udobnost.',
+  { id:'r3', name:'Supernova Comfortglide', brand:'adidas', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
+    price:90.99, rating:4.5, colors:['plava','siva','crna'], sizes:[40,41,42,43,44,45,46],
+    image:svImg('IH2509'),
+    description:'Udobne svakodnevne tenisice za trčanje s mekim Dreamstrike+ međupodplatom za ravnomjeran osjećaj.',
+    tags:['trčanje','komfor','daily'] },
+  { id:'r4', name:'Air Winflo 11', brand:'Nike', category:'tenisice', sport:['trčanje','maraton'], gender:['muški','ženski'],
+    price:76.99, rating:4.6, colors:['crna','bijela','siva'], sizes:[40,41,42,43,44,45],
+    image:svImg('FJ9509-405'),
+    description:'Lagane tenisice za trčanje s reaktivnim Nike React pjenom. Pouzdana podrška za duge staze.',
+    tags:['trčanje','daily'] },
+  { id:'r5', name:'Switch Forward', brand:'adidas', category:'tenisice', sport:['trčanje','trening'], gender:['muški','ženski'],
+    price:97.99, rating:4.5, colors:['bijela','plava'], sizes:[40,41,42,43,44,45],
+    image:svImg('ID2635'),
+    description:'Svestrane tenisice za trčanje s LightMotion međupodplatom. Kombinirani stil i performance za svaki dan.',
     tags:['trčanje','daily','lifestyle'] },
-  { id:'r8', name:'GT-2000 12', brand:'Asics', category:'tenisice', sport:['trčanje'], gender:['muški','ženski'],
-    price:119.99, rating:4.5, colors:['plava','crna','siva'], sizes:[40,41,42,43,44,45],
-    description:'Stabilne tenisice za podršku stopalu kod pronacije. Pouzdan svakodnevni izbor.',
+  { id:'r6', name:'Adistar 3 Reflective', brand:'adidas', category:'tenisice', sport:['trčanje','outdoor'], gender:['muški','ženski'],
+    price:70.00, rating:4.4, colors:['crna','siva'], sizes:[40,41,42,43,44,45],
+    image:svImg('ID6171'),
+    description:'Stabilne tenisice za svakodnevno trčanje s reflektirajućim detaljima za vidljivost u mraku.',
     tags:['trčanje','stabilnost','daily'] },
+  { id:'r7', name:'ADISTAR 4 M', brand:'adidas', category:'tenisice', sport:['trčanje','trening'], gender:['muški','ženski'],
+    price:111.99, rating:4.6, colors:['crna','bijela'], sizes:[40,41,42,43,44,45],
+    image:svImg('JP6575'),
+    description:'Najnovija generacija ADISTAR serije. Adaptivni Dreamstrike+ međupodplat za iznimnu udobnost na dugim stazama.',
+    tags:['trčanje','daily','komfor'] },
+  { id:'r8', name:'ADIZERO ADIOS PRO 4', brand:'adidas', category:'tenisice', sport:['trčanje','maraton','utrka'], gender:['muški','ženski'],
+    price:199.99, rating:4.9, colors:['crvena','bijela'], sizes:[40,41,42,43,44,45],
+    image:svImg('JR7088'),
+    description:'Trkačke tenisice s karbonskim pločama za maksimalne performanse. Za one koji žele postavljati rekorde.',
+    tags:['trčanje','utrka','maraton','elite'] },
 
-  // Men's running trousers (scenario 1)
-  { id:'p1', name:'Phenom Elite Knit Pants', brand:'Nike', category:'hlače', sport:['trčanje'], gender:['muški'],
-    price:89.99, rating:4.7, colors:['crna','siva'], sizes:[38,40,42,44,46,48,50],
-    description:'Pletene hlače za trčanje s minimalnim, suvremenim krojem. Dri-FIT tkanina odvodi vlagu i drži vas suhima.',
-    tags:['trčanje','konzervativno','knit'] },
-  { id:'p2', name:'Own the Run Tights', brand:'adidas', category:'hlače', sport:['trčanje'], gender:['muški'],
-    price:64.99, rating:4.6, colors:['crna'], sizes:[38,40,42,44,46,48],
-    description:'Pripijene hlače za trčanje s reflektirajućim detaljima. AEROREADY upija znoj za suh osjećaj tijekom cijelog treninga.',
-    tags:['trčanje','konzervativno','tights'] },
-  { id:'p3', name:'Dri-FIT Challenger Pants', brand:'Nike', category:'hlače', sport:['trčanje','trening'], gender:['muški'],
-    price:74.99, rating:4.5, colors:['crna','siva'], sizes:[38,40,42,44,46,48],
-    description:'Univerzalne hlače za trčanje i zagrijavanje. Ravan kroj, klasičan dizajn, džepovi sa zatvaračem.',
+  // Men's running trousers (scenario 1) — real sportvision.hr products
+  { id:'p1', name:'Dri-FIT Stride Energy', brand:'Nike', category:'hlače', sport:['trčanje'], gender:['muški'],
+    price:84.99, rating:4.7, colors:['crna','siva'], sizes:[38,40,42,44,46,48,50],
+    image:svImg('IM7432-010'),
+    description:'Lagane hlače za trčanje s Dri-FIT tehnologijom koja odvodi vlagu. Reflektirajući detalji za vidljivost u sumrak.',
     tags:['trčanje','konzervativno'] },
-  { id:'p4', name:'Terrex Trail Running Pants', brand:'adidas', category:'hlače', sport:['trčanje','outdoor'], gender:['muški'],
-    price:79.99, rating:4.4, colors:['crna','siva'], sizes:[38,40,42,44,46],
-    description:'Vodonepropusne hlače za trail trčanje. Sloj pruža zaštitu od vjetra i lagane kiše tijekom planinskih izlazaka.',
-    tags:['trčanje','outdoor','trail','konzervativno'] },
+  { id:'p2', name:'Own the Run', brand:'adidas', category:'hlače', sport:['trčanje'], gender:['muški'],
+    price:47.99, rating:4.6, colors:['crna'], sizes:[38,40,42,44,46,48],
+    image:svImg('IK5024'),
+    description:'Klasične hlače za trčanje s AEROREADY tehnologijom. Ravni kroj s džepovima za praktičnost na stazi.',
+    tags:['trčanje','konzervativno'] },
+  { id:'p3', name:'DF Challenger', brand:'Nike', category:'hlače', sport:['trčanje','trening'], gender:['muški'],
+    price:55.99, rating:4.5, colors:['crna','siva'], sizes:[38,40,42,44,46,48],
+    image:svImg('FQ4780-010'),
+    description:'Svestrane hlače za trčanje i zagrijavanje. Lagane i prozračne, s minimalnim krojem za slobodan pokret.',
+    tags:['trčanje','konzervativno'] },
+  { id:'p4', name:'Tko', brand:'adidas', category:'hlače', sport:['trčanje','trening'], gender:['muški'],
+    price:63.99, rating:4.4, colors:['crna','siva'], sizes:[38,40,42,44,46],
+    image:svImg('IL7187'),
+    description:'Uske hlače za trčanje s AEROREADY tehnologijom za optimalno odvođenje vlage. Idealne za intenzivne treninge.',
+    tags:['trčanje','konzervativno','tights'] },
 
-  // Tennis starter set (scenario 3)
-  { id:'t1', name:'Clash 100 Racket', brand:'Wilson', category:'oprema', sport:['tenis'], gender:['muški','ženski'],
-    price:89.99, rating:4.6, colors:['crna','crvena'], sizes:[],
-    description:'Fleksibilan reket za igrače koji uče. Lagana izvedba i odlična kontrola olakšavaju ulazak u tenis.',
-    tags:['tenis','tenis-starter','reket'] },
-  { id:'t2', name:'Court Lite 3 Tennis Shoes', brand:'Nike', category:'tenisice', sport:['tenis'], gender:['muški','ženski'],
-    price:64.99, rating:4.5, colors:['bijela','crna'], sizes:[40,41,42,43,44,45],
-    description:'Lagane tenisice za tenis s pojačanom potplatom za stabilnost na podlozi. Idealne za rekreativce.',
+  // Tennis starter set (scenario 3) — real sportvision.hr products
+  { id:'t1', name:'CourtFlash Speed', brand:'adidas', category:'tenisice', sport:['tenis'], gender:['muški','ženski'],
+    price:47.99, rating:4.5, colors:['bijela','crna'], sizes:[40,41,42,43,44,45],
+    image:svImg('IG9537'),
+    description:'Lagane tenisice za tenis s Bounce podplatom za stabilnost i dinamičnost na terenu. Idealne za početnike.',
     tags:['tenis','tenis-starter','tenisice'] },
-  { id:'t3', name:'Court Dri-FIT Polo', brand:'Nike', category:'majica', sport:['tenis'], gender:['muški','ženski'],
-    price:34.99, rating:4.4, colors:['bijela','crna','plava'], sizes:[38,40,42,44,46],
-    description:'Klasična polo majica za teniske terene. Dri-FIT tkanina odvodi vlagu, kroj omogućuje slobodan pokret.',
+  { id:'t2', name:'Court Lite 4', brand:'Nike', category:'tenisice', sport:['tenis'], gender:['muški','ženski'],
+    price:59.99, rating:4.6, colors:['bijela','crna','plava'], sizes:[40,41,42,43,44,45],
+    image:svImg('FJ2318-104'),
+    description:'Udobne i stabilne tenisice za rekreativne tenisače. Ojačana potplata za dugtrajnost na tvrdim podlogama.',
+    tags:['tenis','tenis-starter','tenisice'] },
+  { id:'t3', name:'CLUB 3-STRIPES polo', brand:'adidas', category:'majica', sport:['tenis'], gender:['muški','ženski'],
+    price:23.99, rating:4.4, colors:['bijela','crna','plava'], sizes:[38,40,42,44,46],
+    image:svImg('HS3261'),
+    description:'Klasična polo majica za teniske terene. Prozračan materijal s ikoničnim 3-prugama za tenski izgled.',
     tags:['tenis','tenis-starter','polo'] },
-  { id:'t4', name:'Championship Tennis Balls (4x)', brand:'Wilson', category:'oprema', sport:['tenis'], gender:['muški','ženski'],
-    price:7.99, rating:4.3, colors:['žuta'], sizes:[],
-    description:'Pakiranje od 4 teniske loptice za sve podloge. Pouzdana izdržljivost i konzistentan odskok.',
-    tags:['tenis','tenis-starter','loptice'] },
+  { id:'t4', name:'Advantage polo', brand:'Nike', category:'majica', sport:['tenis'], gender:['muški','ženski'],
+    price:64.99, rating:4.5, colors:['bijela','crna','crvena'], sizes:[38,40,42,44,46],
+    image:svImg('FZ6907-478'),
+    description:'Suvremena polo majica za tenis s Dri-FIT tehnologijom. Slobodan pokret i profesionalan izgled na terenu.',
+    tags:['tenis','tenis-starter','polo'] },
 
   // Extra catalogue items
   { id:'x1', name:'Terrex Free Hiker', brand:'adidas', category:'tenisice', sport:['outdoor','planinarenje'], gender:['muški','ženski'],
     price:189.99, rating:4.6, colors:['crna','siva','plava'], sizes:[40,41,42,43,44,45],
+    image:svImg('FX4553'),
     description:'Tenisice za planinarenje s Boost povratkom energije. Continental guma za pouzdan grip na različitim podlogama.',
     tags:['outdoor','planinarenje','hike'] },
   { id:'x2', name:'RS-X', brand:'Puma', category:'tenisice', sport:['lifestyle'], gender:['muški','ženski'],
     price:109.99, rating:4.4, colors:['bijela','crvena','plava'], sizes:[40,41,42,43,44,45],
+    image:svImg('374443-01'),
     description:'Retro chunky tenisice s naglašenim potplatom. Više street stil nego performans model.',
     tags:['lifestyle','retro'] },
-  { id:'x3', name:'Trening kratke hlače', brand:'Reebok', category:'hlače', sport:['trening'], gender:['muški'],
+  { id:'x3', name:'Kratke hlače za trening', brand:'adidas', category:'hlače', sport:['trening'], gender:['muški'],
     price:29.99, rating:4.2, colors:['crna','siva'], sizes:[38,40,42,44,46],
+    image:svImg('IK9736'),
     description:'Lagane kratke hlače za teretanu i kondicijske treninge. Mekan, prozračan materijal.',
     tags:['trening','shorts'] },
   { id:'x4', name:'Strike Football Jersey', brand:'Nike', category:'dres', sport:['nogomet'], gender:['muški'],
     price:54.99, rating:4.5, colors:['plava','bijela','crvena'], sizes:[38,40,42,44,46],
+    image:svImg('DR0889-012'),
     description:'Nogometni dres izrađen od reciklirane Dri-FIT tkanine. Odvodi vlagu i ostaje lagan tijekom utakmica.',
     tags:['nogomet','dres'] }
 ];
@@ -1207,9 +1252,9 @@ function renderResults(results, q) {
     const card = document.createElement('div');
     card.className = 'product-card';
     card.innerHTML = `
-      <div class="product-image" style="background:${brandGrad(p.brand)}">
+      <div class="product-image">
+        <img src="${p.image || ''}" alt="${p.name}" onerror="this.parentElement.style.background='${brandGrad(p.brand)}';this.style.display='none'">
         <div class="brand-watermark">${p.brand}</div>
-        <div class="product-image-name">${p.name}</div>
         <div class="rating">★ ${p.rating.toFixed(1)}</div>
       </div>
       <div class="product-body">
@@ -1264,10 +1309,10 @@ function renderDetail(p) {
   ).slice(0, 6);
 
   body.innerHTML = `
-    <div class="detail-image" style="background:${brandGrad(p.brand)}">
-      <div class="brand-watermark">${p.brand}</div>
-      <div class="product-image-name">${p.name}</div>
-      <div class="rating">★ ${p.rating.toFixed(1)}</div>
+    <div class="detail-image">
+      <img src="${p.image || ''}" alt="${p.name}" onerror="this.parentElement.style.background='${brandGrad(p.brand)}';this.style.display='none'">
+      <div class="brand-watermark" style="color:#333">${p.brand}</div>
+      <div class="rating" style="z-index:1">★ ${p.rating.toFixed(1)}</div>
     </div>
     <div class="detail-name">${p.name}</div>
     <div class="detail-brand">${p.brand} · ${p.category}</div>
@@ -1280,9 +1325,9 @@ function renderDetail(p) {
       <div class="related-scroll">
         ${related.map(r => `
           <div class="related-card" data-related-id="${r.id}">
-            <div class="product-image" style="background:${brandGrad(r.brand)}">
-              <div class="brand-watermark">${r.brand}</div>
-              <div class="product-image-name">${r.name}</div>
+            <div class="product-image">
+              <img src="${r.image || ''}" alt="${r.name}" onerror="this.parentElement.style.background='${brandGrad(r.brand)}';this.style.display='none'">
+              <div class="brand-watermark" style="color:#333">${r.brand}</div>
             </div>
             <div class="related-body">
               <div class="related-name">${r.name}</div>
@@ -1368,7 +1413,7 @@ function renderCart() {
     if (!p) return '';
     return `
       <div class="cart-item">
-        <div class="cart-thumb" style="background:${brandGrad(p.brand)}">${p.brand.slice(0,2).toUpperCase()}</div>
+        <div class="cart-thumb"><img src="${p.image || ''}" alt="${p.name}" onerror="this.parentElement.style.background='${brandGrad(p.brand)}';this.innerHTML='${p.brand.slice(0,2).toUpperCase()}';this.remove()"></div>
         <div class="cart-info">
           <div class="cart-name">${p.name}</div>
           <div class="cart-meta">${p.brand}${item.size ? ' · vel. '+item.size : ''} · ${item.qty}×</div>
