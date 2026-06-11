@@ -910,94 +910,66 @@ function goBack() {
 function goLanding() { state.history = []; show('landing', false); }
 function goCart() { show('cart'); renderCart(); }
 
-// =================== SPEECH RECOGNITION ===================
-function getRecognition(lang = 'hr-HR') {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
-  const r = new SR();
-  r.lang = lang;
-  r.continuous = true;
-  r.interimResults = true;
-  r.maxAlternatives = 1;
-  return r;
-}
+// =================== SPEECH RECOGNITION (Whisper via transformers.js) ===================
+let _asr = null;
+let _asrStatus = 'unloaded'; // unloaded | loading | ready | failed
+let _mediaRecorder = null;
+let _mediaStream = null;
+let _audioChunks = [];
 
-function startListening(mode = 'new', lang = 'hr-HR') {
-  state.listenMode = mode;
-  const r = getRecognition(lang);
-  if (!r) {
-    showError('Glasovni unos nije podržan', 'Vaš preglednik ne podržava Web Speech API. Preporučamo Chrome na desktopu ili Androidu.');
-    return;
+(async function preloadWhisper() {
+  try {
+    _asrStatus = 'loading';
+    const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+    _asr = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', { quantized: true });
+    _asrStatus = 'ready';
+    console.log('[Whisper] Ready');
+  } catch(e) {
+    _asrStatus = 'failed';
+    console.warn('[Whisper] Failed to load:', e.message);
   }
-  state.recognition = r;
+})();
+
+async function startListening(mode = 'new') {
+  state.listenMode = mode;
   document.getElementById('transcript').textContent = '';
   document.getElementById('listeningLabel').textContent = 'Slušam...';
-  document.getElementById('listeningHint').textContent = 'Dodirnite bilo gdje za prekid';
+  document.getElementById('listeningHint').textContent = 'Dodirnite bilo gdje za zaustavljanje';
   document.getElementById('fallbackInput').value = '';
   show('listening');
-  document.getElementById('fallbackInput').focus();
 
-  let finalText = '';
-  let lastInterim = '';
-  let gotAnyResult = false;
+  if (_asrStatus === 'loading') {
+    document.getElementById('listeningLabel').textContent = 'Učitavam model...';
+    document.getElementById('listeningHint').textContent = 'Samo prvi put, molimo pričekajte';
+    // wait for it
+    await new Promise(resolve => {
+      const check = setInterval(() => {
+        if (_asrStatus !== 'loading') { clearInterval(check); resolve(); }
+      }, 300);
+    });
+  }
 
-  r.onresult = (e) => {
-    gotAnyResult = true;
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) {
-        finalText += t;
-        lastInterim = '';
-      } else {
-        interim += t;
-        lastInterim = interim;
-      }
-    }
-    const live = (finalText + interim).trim();
-    document.getElementById('fallbackInput').value = live;
-    document.getElementById('transcript').textContent = '';
-  };
-  r.onstart = () => console.log('[SR] onstart lang=' + lang);
-  r.onerror = (e) => {
-    console.log('[SR] onerror:', e.error, 'lang=' + lang);
-    state.isListening = false;
-    if (e.error === 'network' && lang === 'hr-HR') {
-      // hr-HR endpoint failed — retry silently with en-US
-      console.log('[SR] retrying with en-US');
-      startListening(mode, 'en-US');
-      return;
-    }
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      showListeningError('Mikrofon nije dostupan', 'Dopustite pristup mikrofonu u pregledniku, ili upišite upit ispod.');
-    } else if (e.error === 'no-speech') {
-      showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
-    } else if (e.error === 'network') {
-      showListeningError('Nema veze s prepoznavanjem govora', 'Upišite upit ispod.');
-    } else {
-      showListeningError('Greška: ' + e.error, 'Glasovni unos nije uspio. Upišite upit ispod.');
-    }
-  };
-  r.onend = () => {
-    console.log('[SR] onend, finalText:', JSON.stringify(finalText), 'lastInterim:', JSON.stringify(lastInterim));
-    state.isListening = false;
-    // Use finalText first; fall back to lastInterim if the engine never emitted a final result
-    const text = (finalText || lastInterim).trim();
-    if (text) {
-      handleSpeechResult(text);
-    } else if (state.currentScreen === 'listening') {
-      // Don't silently go to landing — show fallback so user can type instead
-      showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
-    }
-  };
+  if (_asrStatus !== 'ready') {
+    showListeningError('Mikrofon nije dostupan', 'Upišite upit ispod ili pokušajte ponovo.');
+    return;
+  }
 
   try {
-    r.start();
-    state.isListening = true;
-    state.listenStartedAt = Date.now();
-  } catch (err) {
-    showError('Greška pri pokretanju mikrofona', err.message || 'Pokušajte ponovo.');
+    _mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    showListeningError('Mikrofon nije dostupan', 'Dopustite pristup mikrofonu, ili upišite upit ispod.');
+    return;
   }
+
+  _audioChunks = [];
+  const opts = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : {};
+  _mediaRecorder = new MediaRecorder(_mediaStream, opts);
+  _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _audioChunks.push(e.data); };
+  _mediaRecorder.start(200);
+  state.isListening = true;
+  state.listenStartedAt = Date.now();
 }
 
 function showListeningError(title, hint) {
@@ -1011,13 +983,47 @@ function submitFallbackText() {
   const text = document.getElementById('fallbackInput').value.trim();
   if (!text) return;
   document.getElementById('fallbackInput').value = '';
-  if (state.recognition) try { state.recognition.stop(); } catch(e) {}
+  stopListening(true);
   handleSpeechResult(text);
 }
 
-function stopListening() {
-  if (state.recognition && state.isListening && Date.now() - state.listenStartedAt > 600) {
-    try { state.recognition.stop(); } catch(e) {}
+async function stopListening(skipTranscribe = false) {
+  if (!state.isListening || Date.now() - state.listenStartedAt < 600) return;
+  state.isListening = false;
+
+  if (skipTranscribe || !_mediaRecorder || _mediaRecorder.state === 'inactive') {
+    if (_mediaStream) _mediaStream.getTracks().forEach(t => t.stop());
+    return;
+  }
+
+  document.getElementById('listeningLabel').textContent = 'Prepisujem...';
+  document.getElementById('listeningHint').textContent = '';
+
+  const text = await new Promise(resolve => {
+    _mediaRecorder.onstop = async () => {
+      if (_mediaStream) _mediaStream.getTracks().forEach(t => t.stop());
+      try {
+        const blob = new Blob(_audioChunks, { type: _mediaRecorder.mimeType || 'audio/webm' });
+        const arrBuf = await blob.arrayBuffer();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        const audioBuf = await ctx.decodeAudioData(arrBuf);
+        await ctx.close();
+        const result = await _asr(audioBuf.getChannelData(0), {
+          language: 'croatian', task: 'transcribe', sampling_rate: 16000,
+        });
+        resolve((result.text || '').trim());
+      } catch(e) {
+        console.error('[Whisper] transcribe error:', e);
+        resolve('');
+      }
+    };
+    _mediaRecorder.stop();
+  });
+
+  if (text) {
+    handleSpeechResult(text);
+  } else {
+    showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
   }
 }
 
