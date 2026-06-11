@@ -909,75 +909,118 @@ function wordsToNumber(text) {
 }
 
 function parseQuery(rawText) {
+  // Normalise: lowercase + strip diacritics for fuzzy matching
   const text = ' ' + rawText.toLowerCase().normalize('NFC') + ' ';
+  const t = ' ' + rawText.toLowerCase()
+    .replace(/[čć]/g,'c').replace(/[šś]/g,'s').replace(/[žź]/g,'z')
+    .replace(/đ/g,'d').replace(/[áàâä]/g,'a').replace(/[éèê]/g,'e')
+    .replace(/[íìî]/g,'i').replace(/[óòôö]/g,'o').replace(/[úùûü]/g,'u') + ' ';
+  const has = (...pats) => pats.some(p => p.test(text) || p.test(t));
+
   const q = {
     category: null, sport: null, gender: null, brands: [],
     maxPrice: null, style: null, colors: [], sizes: [], bundle: false,
     ageHints: [], raw: rawText
   };
 
-  // Category
-  if (/\btenisic/.test(text)) q.category = 'tenisice';
-  else if (/\bhlač|\btraperic|\btajic/.test(text)) q.category = 'hlače';
-  else if (/\bmajic|\bpolo|\bmajica/.test(text)) q.category = 'majica';
-  else if (/\bjakn/.test(text)) q.category = 'jakna';
-  else if (/\bdres/.test(text)) q.category = 'dres';
-  else if (/\bopremu|\boprema|\bkomplet|\bset\b|\bsve zajedno/.test(text)) { q.category = 'oprema'; q.bundle = true; }
+  // ---- Category ----
+  if (has(/\btenisic/, /\bcipel/, /\bobuc/, /\bobut/, /\bpatik/, /\bsneaker/))
+    q.category = 'tenisice';
+  else if (has(/\bhlac/, /\bhlac/, /\btrenirk/, /\btajic/, /\bleggin/, /\bpantalone/, /\bpantalon/))
+    q.category = 'hlače';
+  else if (has(/\bmajic/, /\bpolo/, /\bshirt/, /\btshirt/, /\bt-shirt/))
+    q.category = 'majica';
+  else if (has(/\bjakn/))
+    q.category = 'jakna';
+  else if (has(/\bdres/))
+    q.category = 'dres';
 
-  // Sport
-  if (/\bmaraton/.test(text)) q.sport = 'maraton';
-  else if (/\btrčanj|\btrcanj|\btrkanj|\btrk\b/.test(text)) q.sport = 'trčanje';
-  else if (/\btenis\b|\btenisa\b|\btenisu\b/.test(text)) q.sport = 'tenis';
-  else if (/\bnogomet/.test(text)) q.sport = 'nogomet';
-  else if (/\bkošark|\bkosark/.test(text)) q.sport = 'košarka';
-  else if (/\btrening/.test(text)) q.sport = 'trening';
-  else if (/\boutdoor/.test(text)) q.sport = 'outdoor';
+  // ---- Bundle / kit ----
+  if (has(
+    /\bkomplet/, /\bsve zajedno/, /\bcijeli set/, /\bopremu trebam/, /\bkakvu opremu/,
+    /\boprema/, /\bset\b/, /\bkit\b/, /\bstarter/, /\bza pocetak/, /\bza pocet/,
+    /\bpoceti igrati/, /\bzeljm igrati/, /\bzelim igrati/, /\bzapoceti/, /\bkrenuti igrati/,
+    /\bkakvu opremu/, /\bsto trebam/, /\sto mi treba/, /\btreba mi oprema/,
+    /\bpocetni paket/, /\bpocetnik/
+  )) q.bundle = true;
 
-  // Gender
-  if (/\bmušk|\bmusk|\bja sam muškarac|\bja sam muskarac/.test(text)) q.gender = 'muški';
-  else if (/\bžensk|\bzensk|\bžen[ae]\b/.test(text)) q.gender = 'ženski';
-  else if (/\bdijete\b|\bdjeca|\bdjete\b|\bdjetet/.test(text)) q.gender = 'dijete';
-  else if (/\bodras/.test(text)) q.gender = 'odrasli';
+  if (q.bundle && !q.category) q.category = 'oprema';
 
-  // Brands
+  // ---- Sport ----
+  if (has(/\bmaraton/, /\bmaratonsk/, /\butrk/, /\btrka\b/))
+    q.sport = 'maraton';
+  else if (has(/\btrcanj/, /\btrcati/, /\btrcam/, /\btrk\b/, /\bjogging/, /\bjog\b/, /\brun\b/))
+    q.sport = 'trčanje';
+  else if (has(/\btenis\b/, /\btenisa/, /\btenisu/, /\btenisk/, /\bigrati tenis/))
+    q.sport = 'tenis';
+  else if (has(/\bnogomet/, /\bfootball/, /\bfutsala/, /\bfutsal/))
+    q.sport = 'nogomet';
+  else if (has(/\bkosark/, /\bbasketball/))
+    q.sport = 'košarka';
+  else if (has(/\btrening/, /\bfitness/, /\bteretana/, /\bgym\b/))
+    q.sport = 'trening';
+  else if (has(/\boutdoor/, /\bplaninaren/, /\bplaninaski/))
+    q.sport = 'outdoor';
+
+  // If sport=tenis and no category set, and bundle detected — keep category=oprema
+  // If someone says "tenis" and "pocetak/pocetak/starter" without explicit category, it's a bundle
+  if (q.sport === 'tenis' && !q.category && has(
+    /\bpoceti/, /\bpocetnik/, /\bstarter/, /\bpocetna/, /\bkrenuti/, /\bzelim igrati/,
+    /\bkakvu opremu/, /\sto trebam/, /\btreba mi/, /\bpaket/, /\bkomplet/
+  )) {
+    q.bundle = true;
+    q.category = 'oprema';
+  }
+
+  // ---- Running: if no category but sport=trčanje/maraton, imply tenisice only if shoes words present
+  // (leave category null to show all running products)
+
+  // ---- Gender ----
+  if (has(/\bmuski/, /\bmuskarac/, /\bmuskarci/, /\bza muskarce/, /\bja sam muskarac/))
+    q.gender = 'muški';
+  else if (has(/\bzenski/, /\bzen[ae]\b/, /\bza zene/, /\bza zensku/))
+    q.gender = 'ženski';
+  else if (has(/\bdijete/, /\bdjeca/, /\bdjete/, /\bdjecij/, /\bdjecak/, /\bdjevojcic/))
+    q.gender = 'dijete';
+  else if (has(/\bodrasli/, /\bodraslog/, /\bza odraslog/, /\bza odraslu/))
+    q.gender = 'odrasli';
+
+  // ---- Brands ----
   const brandMap = [
     ['nike','Nike'],['adidas','adidas'],['asics','Asics'],
     ['new balance','New Balance'],['puma','Puma'],['reebok','Reebok'],
     ['hoka','Hoka'],['wilson','Wilson']
   ];
   for (const [needle, label] of brandMap) {
-    if (text.includes(needle)) q.brands.push(label);
+    if (text.includes(needle) || t.includes(needle)) q.brands.push(label);
   }
 
-  // Max price: "do X eura/€" or "do X kuna"
-  const priceMatch = text.match(/\bdo\s+([a-zćčšž0-9\s]+?)\s*(eura|euro|€|kuna|hrk)\b/);
+  // ---- Max price ----
+  // "do X eura/€", "ispod X", "manje od X", "maksimalno X", "ukupno do X"
+  const priceRe = /\b(?:do|ispod|manje od|maksimalno|max|ukupno do|sve zajedno do|sve do|otprilike)\s+([a-zćčšžđ0-9\s]+?)\s*(?:eura|euro|eur|€|kuna|hrk)?\s*(?:\b|$)/;
+  const priceMatch = text.match(priceRe) || t.match(priceRe);
   if (priceMatch) {
     const n = wordsToNumber(priceMatch[1].trim());
     if (n != null && n > 0) q.maxPrice = n;
   }
-  // "sve zajedno do X" without "eura" suffix
-  if (!q.maxPrice) {
-    const altMatch = text.match(/\b(?:sve\s+zajedno\s+do|ukupno\s+do|maksimum)\s+([a-zćčšž0-9\s]+?)\s*(eura|euro|€)?\b/);
-    if (altMatch) {
-      const n = wordsToNumber(altMatch[1].trim());
-      if (n != null && n > 0) q.maxPrice = n;
-    }
-  }
 
-  // Style
-  if (/\bkonzervativ/.test(text)) q.style = 'konzervativno';
-  else if (/\bcasual|\bopušten|\bopusten/.test(text)) q.style = 'casual';
-  else if (/\bsportski|\bsport\b/.test(text)) q.style = 'sportski';
+  // ---- Style ----
+  if (has(/\bkonzervativ/, /\bklasican/, /\bklasicn/, /\buredna/, /\buredan/))
+    q.style = 'konzervativno';
+  else if (has(/\bcasual/, /\bopusten/, /\bsvakodnevn/))
+    q.style = 'casual';
+  else if (has(/\bsportski\b/, /\bsport\b/))
+    q.style = 'sportski';
 
-  // Colors
+  // ---- Colors ----
   const colorMap = [
-    [/\bcrn[aeiou]/, 'crna'], [/\bbijel/, 'bijela'], [/\bcrven/, 'crvena'],
-    [/\bplav/, 'plava'], [/\bzelen/, 'zelena'], [/\bsiv/, 'siva'], [/\bžut|\bzut/, 'žuta']
+    [/\bcrn/, 'crna'], [/\bbijel/, 'bijela'], [/\bcrven/, 'crvena'],
+    [/\bplav/, 'plava'], [/\bzelen/, 'zelena'], [/\bsiv/, 'siva'], [/\bzut/, 'žuta']
   ];
-  for (const [re, c] of colorMap) if (re.test(text)) q.colors.push(c);
+  for (const [re, c] of colorMap) if (re.test(text) || re.test(t)) q.colors.push(c);
 
-  // Sizes: "veličina 42", "broj 43", "42-ica"
-  const sizeMatch1 = text.match(/\b(?:veličin[ae]|velicin[ae]|broj|brojem)\s+([a-zćčšž0-9\s]+?)(?=[,.]|$)/);
+  // ---- Sizes ----
+  const sizeMatch1 = text.match(/\b(?:velicin[ae]|broj|brojem)\s+([a-zćčšž0-9\s]+?)(?=[,. ]|$)/);
   if (sizeMatch1) {
     const n = wordsToNumber(sizeMatch1[1].trim());
     if (n != null && n >= 30 && n <= 50) q.sizes.push(n);
@@ -985,17 +1028,16 @@ function parseQuery(rawText) {
   const sizeMatch2 = text.match(/\b(\d{2})[-\s]?ic[ae]?\b/);
   if (sizeMatch2) q.sizes.push(parseInt(sizeMatch2[1], 10));
 
-  // Age hints
-  const ageMatch = text.match(/\bimam\s+([a-zćčšž0-9\s]+?)\s+godin/);
+  // ---- Age hints ----
+  const ageMatch = text.match(/\bimam\s+([a-zćčšž0-9\s]+?)\s+godin/) ||
+                   t.match(/\bimam\s+([a-z0-9\s]+?)\s+godin/);
   if (ageMatch) {
     const n = wordsToNumber(ageMatch[1].trim());
     if (n != null) q.ageHints.push({ age: n });
   }
-  if (/\bmlad\b|\bmlađ/.test(text)) q.ageHints.push({ tag:'mlad' });
-  if (/\bpočetni|\bpocetni|\bžel[ie]m\s+(za)?početi|\bpočet[ae]k/.test(text)) q.ageHints.push({ tag:'početnik' });
-
-  // Bundle hint
-  if (/\bkomplet\b|\bsve zajedno\b|\bcijeli set\b|\bopremu trebam\b|\bkakvu opremu/.test(text)) q.bundle = true;
+  if (has(/\bmlad\b/, /\bmlad[ie]\b/)) q.ageHints.push({ tag:'mlad' });
+  if (has(/\bpocetni/, /\bpocetnik/, /\bzelim\s+(?:za)?poceti/, /\bpocet[ae]k/))
+    q.ageHints.push({ tag:'početnik' });
 
   return q;
 }
