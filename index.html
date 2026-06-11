@@ -167,6 +167,35 @@
     margin: 0 auto;
   }
   .hint { margin-top: 24px; font-size: 13px; color: var(--muted); }
+  .transcript-live {
+    font-size: 17px;
+    color: var(--text);
+    line-height: 1.55;
+    min-height: 60px;
+    max-width: 320px;
+    margin: 0 auto;
+    text-align: center;
+    font-weight: 500;
+  }
+  .transcript-live .interim { color: var(--muted); }
+  .transcript-live .final { color: var(--text); }
+  .demo-scenario {
+    display: flex; gap: 14px;
+    background: #f8f8f8;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .demo-num {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: var(--brand); color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+  }
+  .demo-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .demo-quote { font-size: 13px; color: var(--text); font-style: italic; line-height: 1.5; margin-bottom: 6px; }
+  .demo-result { font-size: 12px; color: var(--brand); font-weight: 600; }
 
   /* ===== Follow-up ===== */
   #screen-followup {
@@ -495,7 +524,48 @@
     <button class="radar-tap" id="landingTap" aria-label="Pokreni glasovnu pretragu"></button>
 
     <div class="press-label">Reci nam što tražiš.</div>
+    <button id="demoLink" onclick="openDemo()" style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);background:none;border:none;font-size:13px;color:var(--muted);text-decoration:underline;cursor:pointer;padding:8px 16px;">Demo scenariji</button>
   </section>
+
+  <!-- =================== DEMO MODAL =================== -->
+  <div id="demoModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center">
+    <div style="width:100%;max-width:390px;background:#fff;border-radius:24px 24px 0 0;padding:28px 24px 40px;max-height:88vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:18px;font-weight:800">Demo scenariji</div>
+        <button onclick="closeDemo()" style="background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:4px 8px;line-height:1">✕</button>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Recite jednu od rečenica ispod da testirate asistenta:</div>
+
+      <div class="demo-scenario">
+        <div class="demo-num">1</div>
+        <div>
+          <div class="demo-title">Muške hlače za trčanje</div>
+          <div class="demo-quote">"Imam trideset godina, konzervativnog sam stila, tražim muške hlače za trčanje, do sto eura, Nike ili Adidas."</div>
+          <div class="demo-result">→ 4 hlače, Nike + adidas, do 100 €</div>
+        </div>
+      </div>
+
+      <div class="demo-scenario">
+        <div class="demo-num">2</div>
+        <div>
+          <div class="demo-title">Tenisice za maraton</div>
+          <div class="demo-quote">"Pripremam se za maraton i trebam novi par tenisica za trčanje. Pokažite mi sve opcije koje imate."</div>
+          <div class="demo-result">→ 8 tenisica za trčanje</div>
+        </div>
+      </div>
+
+      <div class="demo-scenario">
+        <div class="demo-num">3</div>
+        <div>
+          <div class="demo-title">Tenis starter paket</div>
+          <div class="demo-quote">"Želim početi igrati tenis, kakvu opremu trebam? Sve zajedno do dvjesto eura."</div>
+          <div class="demo-result">→ Pitanje: odrasli/dijete → 4 artikla, paket ispod 200 €</div>
+        </div>
+      </div>
+
+      <button onclick="closeDemo()" style="width:100%;padding:16px;background:var(--brand);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px">Zatvori</button>
+    </div>
+  </div>
 
   <!-- =================== LISTENING =================== -->
   <section id="screen-listening" class="screen">
@@ -508,7 +578,7 @@
       </svg>
     </div>
     <div class="listening-label" id="listeningLabel">Slušam...</div>
-    <div class="transcript" id="transcript"></div>
+    <div class="transcript-live" id="transcript"></div>
     <div class="hint" id="listeningHint">Dodirnite bilo gdje za prekid</div>
     <div id="listeningFallback" style="padding:0 24px;width:100%;margin-top:8px" onclick="event.stopPropagation()">
       <div style="display:flex;gap:8px">
@@ -1015,6 +1085,7 @@ async function startListening(mode = 'new') {
   _mediaRecorder.start(200);
   state.isListening = true;
   state.listenStartedAt = Date.now();
+  startLiveTranscript();
 }
 
 function showListeningError(title, hint) {
@@ -1037,10 +1108,12 @@ async function stopListening(skipTranscribe = false) {
   state.isListening = false;
 
   if (skipTranscribe || !_mediaRecorder || _mediaRecorder.state === 'inactive') {
+    stopLiveTranscript();
     if (_mediaStream) _mediaStream.getTracks().forEach(t => t.stop());
     return;
   }
 
+  stopLiveTranscript();
   document.getElementById('listeningLabel').textContent = 'Prepisujem...';
   document.getElementById('listeningHint').textContent = '';
 
@@ -1066,11 +1139,60 @@ async function stopListening(skipTranscribe = false) {
   });
 
   if (text) {
+    // Show transcribed text briefly before navigating
+    const tEl = document.getElementById('transcript');
+    tEl.innerHTML = `<span class="final">${text}</span>`;
+    document.getElementById('listeningLabel').textContent = 'Prepoznato:';
+    await new Promise(r => setTimeout(r, 900));
     handleSpeechResult(text);
   } else {
     showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
   }
 }
+
+// Live transcript via Web Speech API (best-effort — only for visual feedback)
+let _liveRecognition = null;
+function startLiveTranscript() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+  try {
+    _liveRecognition = new SpeechRecognition();
+    _liveRecognition.lang = 'hr-HR';
+    _liveRecognition.interimResults = true;
+    _liveRecognition.continuous = true;
+    _liveRecognition.onresult = (e) => {
+      if (!state.isListening) return;
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      const tEl = document.getElementById('transcript');
+      if (tEl) tEl.innerHTML =
+        (final ? `<span class="final">${final}</span>` : '') +
+        (interim ? `<span class="interim"> ${interim}</span>` : '');
+    };
+    _liveRecognition.onerror = () => { _liveRecognition = null; };
+    _liveRecognition.start();
+  } catch(e) { _liveRecognition = null; }
+}
+function stopLiveTranscript() {
+  if (_liveRecognition) { try { _liveRecognition.stop(); } catch(e) {} _liveRecognition = null; }
+}
+
+// =================== DEMO MODAL ===================
+function openDemo() {
+  const m = document.getElementById('demoModal');
+  m.style.display = 'flex';
+  requestAnimationFrame(() => m.querySelector('div').style.transform = 'none');
+}
+function closeDemo() {
+  document.getElementById('demoModal').style.display = 'none';
+}
+document.getElementById('demoModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('demoModal')) closeDemo();
+});
 
 function handleSpeechResult(text) {
   const q = parseQuery(text);
