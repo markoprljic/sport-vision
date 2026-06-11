@@ -911,20 +911,20 @@ function goLanding() { state.history = []; show('landing', false); }
 function goCart() { show('cart'); renderCart(); }
 
 // =================== SPEECH RECOGNITION ===================
-function getRecognition() {
+function getRecognition(lang = 'hr-HR') {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const r = new SR();
-  r.lang = 'hr-HR';
+  r.lang = lang;
   r.continuous = true;
   r.interimResults = true;
   r.maxAlternatives = 1;
   return r;
 }
 
-function startListening(mode = 'new') {
+function startListening(mode = 'new', lang = 'hr-HR') {
   state.listenMode = mode;
-  const r = getRecognition();
+  const r = getRecognition(lang);
   if (!r) {
     showError('Glasovni unos nije podržan', 'Vaš preglednik ne podržava Web Speech API. Preporučamo Chrome na desktopu ili Androidu.');
     return;
@@ -939,8 +939,10 @@ function startListening(mode = 'new') {
 
   let finalText = '';
   let lastInterim = '';
+  let gotAnyResult = false;
 
   r.onresult = (e) => {
+    gotAnyResult = true;
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const t = e.results[i][0].transcript;
@@ -956,16 +958,22 @@ function startListening(mode = 'new') {
     document.getElementById('fallbackInput').value = live;
     document.getElementById('transcript').textContent = '';
   };
-  r.onstart = () => console.log('[SR] onstart');
+  r.onstart = () => console.log('[SR] onstart lang=' + lang);
   r.onerror = (e) => {
-    console.log('[SR] onerror:', e.error);
+    console.log('[SR] onerror:', e.error, 'lang=' + lang);
     state.isListening = false;
+    if (e.error === 'network' && lang === 'hr-HR') {
+      // hr-HR endpoint failed — retry silently with en-US
+      console.log('[SR] retrying with en-US');
+      startListening(mode, 'en-US');
+      return;
+    }
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
       showListeningError('Mikrofon nije dostupan', 'Dopustite pristup mikrofonu u pregledniku, ili upišite upit ispod.');
     } else if (e.error === 'no-speech') {
       showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
     } else if (e.error === 'network') {
-      showListeningError('Nema interneta', 'Prepoznavanje govora zahtijeva internetsku vezu. Upišite upit ispod.');
+      showListeningError('Nema veze s prepoznavanjem govora', 'Upišite upit ispod.');
     } else {
       showListeningError('Greška: ' + e.error, 'Glasovni unos nije uspio. Upišite upit ispod.');
     }
