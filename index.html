@@ -1152,6 +1152,43 @@ function submitFallbackText() {
   handleSpeechResult(text);
 }
 
+// Web Speech API — primary recogniser (cloud, native hr-HR)
+let _liveRecognition = null;
+let _wsResult = '';       // accumulates final Web Speech text
+let _wsWorking = false;   // true while Web Speech is producing results
+
+function startLiveTranscript() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+  _wsResult = '';
+  _wsWorking = false;
+  try {
+    _liveRecognition = new SpeechRecognition();
+    _liveRecognition.lang = 'hr-HR';
+    _liveRecognition.interimResults = true;
+    _liveRecognition.continuous = true;
+    _liveRecognition.onresult = (e) => {
+      let interim = '', finalChunk = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) { finalChunk += t; _wsResult += t; _wsWorking = true; }
+        else interim += t;
+      }
+      if (!state.isListening) return;
+      const tEl = document.getElementById('transcript');
+      if (tEl) tEl.innerHTML =
+        (_wsResult ? `<span class="final">${_wsResult}</span>` : '') +
+        (interim    ? `<span class="interim"> ${interim}</span>` : '');
+    };
+    _liveRecognition.onerror = () => { _liveRecognition = null; };
+    _liveRecognition.start();
+  } catch(e) { _liveRecognition = null; }
+}
+
+function stopLiveTranscript() {
+  if (_liveRecognition) { try { _liveRecognition.stop(); } catch(e) {} _liveRecognition = null; }
+}
+
 async function stopListening(skipTranscribe = false) {
   if (!state.isListening || Date.now() - state.listenStartedAt < 1500) return;
   state.isListening = false;
@@ -1163,6 +1200,19 @@ async function stopListening(skipTranscribe = false) {
   }
 
   stopLiveTranscript();
+
+  // If Web Speech already gave us text, use it immediately — skip Whisper
+  if (_wsWorking && _wsResult.trim()) {
+    if (_mediaStream) _mediaStream.getTracks().forEach(t => t.stop());
+    _mediaRecorder.stop();
+    const text = _wsResult.trim();
+    showRecognised(text);
+    await new Promise(r => setTimeout(r, 800));
+    handleSpeechResult(text);
+    return;
+  }
+
+  // Fall back to Whisper
   document.getElementById('listeningLabel').textContent = 'Prepisujem...';
   document.getElementById('listeningHint').textContent = '';
 
@@ -1188,46 +1238,18 @@ async function stopListening(skipTranscribe = false) {
   });
 
   if (text) {
-    // Show transcribed text briefly before navigating
-    const tEl = document.getElementById('transcript');
-    tEl.innerHTML = `<span class="final">${text}</span>`;
-    document.getElementById('listeningLabel').textContent = 'Prepoznato:';
-    await new Promise(r => setTimeout(r, 900));
+    showRecognised(text);
+    await new Promise(r => setTimeout(r, 800));
     handleSpeechResult(text);
   } else {
     showListeningError('Nije prepoznat govor', 'Pokušajte ponovo ili upišite upit ispod.');
   }
 }
 
-// Live transcript via Web Speech API (best-effort — only for visual feedback)
-let _liveRecognition = null;
-function startLiveTranscript() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return;
-  try {
-    _liveRecognition = new SpeechRecognition();
-    _liveRecognition.lang = 'hr-HR';
-    _liveRecognition.interimResults = true;
-    _liveRecognition.continuous = true;
-    _liveRecognition.onresult = (e) => {
-      if (!state.isListening) return;
-      let interim = '', final = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) final += t;
-        else interim += t;
-      }
-      const tEl = document.getElementById('transcript');
-      if (tEl) tEl.innerHTML =
-        (final ? `<span class="final">${final}</span>` : '') +
-        (interim ? `<span class="interim"> ${interim}</span>` : '');
-    };
-    _liveRecognition.onerror = () => { _liveRecognition = null; };
-    _liveRecognition.start();
-  } catch(e) { _liveRecognition = null; }
-}
-function stopLiveTranscript() {
-  if (_liveRecognition) { try { _liveRecognition.stop(); } catch(e) {} _liveRecognition = null; }
+function showRecognised(text) {
+  document.getElementById('transcript').innerHTML = `<span class="final">${text}</span>`;
+  document.getElementById('listeningLabel').textContent = 'Prepoznato:';
+  document.getElementById('listeningHint').textContent = '';
 }
 
 // =================== DEMO MODAL ===================
